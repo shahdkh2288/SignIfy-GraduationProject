@@ -61,6 +61,9 @@ flutter:
   assets:
   - assets/splash_image.png
   - assets/onboarding1.png
+  - assets/onboarding2.png
+  - assets/onboarding3.png
+  - assets/onboarding4.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

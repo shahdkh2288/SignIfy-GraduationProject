@@ -18,7 +18,7 @@ class OnboardingScreen1 extends StatelessWidget {
           const Text(
             'Welcome to Signify! 👋',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 28,
               fontWeight: FontWeight.bold,
               fontFamily: 'LeagueSpartan',
               color: Color(0xFF005FCE),
@@ -29,7 +29,7 @@ class OnboardingScreen1 extends StatelessWidget {
             'Bridging communication\nbetween everyone through sign language',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 24,
               color: Colors.grey[700],
               fontFamily: 'LeagueSpartan',
             ),
