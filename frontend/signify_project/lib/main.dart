@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding2.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding3.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding4.dart';
+import 'package:signify_project/authentication/forgotPassword.dart';
+import 'package:signify_project/authentication/login.dart';
 import 'Splash and Onboarding Screens/Splash.dart';
 import 'Splash and Onboarding Screens/Onboarding1.dart';
 void main() {
@@ -9,6 +11,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -24,6 +28,8 @@ class MyApp extends StatelessWidget {
         '/onboarding2': (context) => OnboardingScreen2(),
         '/onboarding3': (context) => OnBoardingScreen3(),
         '/onboarding4': (context) => OnboardingScreen4(),
+        '/login': (context) => LoginScreen(),
+        'forgotPassword': (context) => forgotPasswordScreen(),
         
       },
     );

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/DotIndicator.dart';
 
 class OnboardingScreen4 extends StatelessWidget{
+  const OnboardingScreen4({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,7 +65,7 @@ class OnboardingScreen4 extends StatelessWidget{
                     children: [
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/authentication/login'); 
+                          Navigator.pushNamed(context, '/login'); 
                         },
                         child: const Text(
                           'Skip',
@@ -77,7 +79,7 @@ class OnboardingScreen4 extends StatelessWidget{
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/authentication/login'); 
+                          Navigator.pushNamed(context, '/login'); 
                         },
                         child: const Text(
                           'Next',
