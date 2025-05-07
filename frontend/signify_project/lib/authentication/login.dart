@@ -185,9 +185,82 @@ class _LoginScreeState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 30),
-                    
+                    SizedBox(height: 68),
+                    Center(
+                      child: Text(
+                        'Or Login With',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontFamily: 'LeagueSpartan',
+                          color: Color(0xFF005FCE),
+                          fontWeight: FontWeight.w100,
+                          shadows: [
+                            Shadow(
+                              color: Colors.grey.withOpacity(0.5),
+                              offset: Offset(1.5, 1.5),
+                              blurRadius: 2.0,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center, 
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            
+                          },
+                          child: Image.asset(
+                            'assets/googleIcon.png',
+                            height: 50,
+                            width: 50,
+                          ),
+                        ),
+                        SizedBox(width: 30),
+                        GestureDetector(
+                          onTap: () {
+                            // icloud login
+                          },
+                          child: Image.asset(
+                            'assets/icloudIcon.png',
+                            height: 50,
+                            width: 50,
+                          ),
+                        ),
+                      ],
+                    ),      
+                    SizedBox(height: 65),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Don’t have an account ? ",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontFamily: 'LeagueSpartan',
+                            color: Color(0xFF005FCE),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, '/signup'); 
+                          },
+                          child: Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Color(0xFF005FCE),
+                              fontFamily: 'LeagueSpartan',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 22,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
                   ],
+                  
                 ),
               ),
             ],
