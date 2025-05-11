@@ -6,3 +6,4 @@ flask-cors
 bcrypt
 flask-jwt-extended
 python-dotenv
+elevenlabs
