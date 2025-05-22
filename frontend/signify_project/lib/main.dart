@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding2.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding3.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding4.dart';
+import 'package:signify_project/authentication/VerifyAccount.dart';
 import 'package:signify_project/authentication/forgotPassword.dart';
 import 'package:signify_project/authentication/login.dart';
 import 'package:signify_project/authentication/signup.dart';
@@ -30,8 +31,9 @@ class MyApp extends StatelessWidget {
         '/onboarding3': (context) => OnBoardingScreen3(),
         '/onboarding4': (context) => OnboardingScreen4(),
         '/login': (context) => LoginScreen(),
-        '/forgotPassword': (context) => forgotPasswordScreen(),
+        '/forgotPassword': (context) => ForgotPasswordScreen(),
         '/signup': (context) => SignUpScreen(),
+        '/verifyAccount': (context) => Verifyaccount(),
         
       },
     );
