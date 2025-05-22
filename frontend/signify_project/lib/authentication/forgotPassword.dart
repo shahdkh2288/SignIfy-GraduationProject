@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class forgotPasswordScreen extends StatefulWidget {
-  const forgotPasswordScreen({Key? key}) : super(key: key);
+  const forgotPasswordScreen({super.key});
 
   @override
   State<forgotPasswordScreen> createState() => _forgotPasswordScreenState();

@@ -4,6 +4,7 @@ import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding3.
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding4.dart';
 import 'package:signify_project/authentication/forgotPassword.dart';
 import 'package:signify_project/authentication/login.dart';
+import 'package:signify_project/authentication/signup.dart';
 import 'Splash and Onboarding Screens/Splash.dart';
 import 'Splash and Onboarding Screens/Onboarding1.dart';
 void main() {
@@ -29,7 +30,8 @@ class MyApp extends StatelessWidget {
         '/onboarding3': (context) => OnBoardingScreen3(),
         '/onboarding4': (context) => OnboardingScreen4(),
         '/login': (context) => LoginScreen(),
-        'forgotPassword': (context) => forgotPasswordScreen(),
+        '/forgotPassword': (context) => forgotPasswordScreen(),
+        '/signup': (context) => SignUpScreen(),
         
       },
     );

@@ -69,6 +69,13 @@ flutter:
   - assets/passIcon.png
   - assets/googleIcon.png
   - assets/icloudIcon.png
+  - assets/back.png
+  - assets/userIcon.png
+  - assets/email.png
+  - assets/DOB.png
+  - assets/radioUnhear.png
+  - assets/radioNospeech.png
+  - assets/radioUser.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

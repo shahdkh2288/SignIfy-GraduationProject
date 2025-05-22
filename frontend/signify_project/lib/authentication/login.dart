@@ -12,6 +12,7 @@ class _LoginScreeState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false; 
 
   @override
   Widget build(BuildContext context) {
@@ -164,11 +165,20 @@ class _LoginScreeState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          Navigator.pushNamed(context, '/home'); 
-                        }
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              if (_formKey.currentState!.validate()) {
+                                setState(() {
+                                  _isLoading = true;
+                                });
+                                await Future.delayed(Duration(seconds: 2)); 
+                                setState(() {
+                                  _isLoading = false;
+                                });
+                                Navigator.pushNamed(context, '/home');
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF005FCE),
                         padding: EdgeInsets.symmetric(horizontal: 163, vertical: 10),
@@ -176,14 +186,18 @@ class _LoginScreeState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
-                      child: Text(
-                        'Login',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'LeagueSpartan',
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                          : Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontFamily: 'LeagueSpartan',
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                     SizedBox(height: 68),
                     Center(
