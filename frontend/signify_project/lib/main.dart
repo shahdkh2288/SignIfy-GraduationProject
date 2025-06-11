@@ -3,6 +3,7 @@ import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding2.
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding3.dart';
 import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding4.dart';
 import 'package:signify_project/authentication/VerifyAccount.dart';
+import 'package:signify_project/authentication/createNewPass.dart';
 import 'package:signify_project/authentication/forgotPassword.dart';
 import 'package:signify_project/authentication/login.dart';
 import 'package:signify_project/authentication/signup.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/forgotPassword': (context) => ForgotPasswordScreen(),
         '/signup': (context) => SignUpScreen(),
         '/verifyAccount': (context) => Verifyaccount(),
+        '/createNewPassword': (context) => createNewPassword(),
         
       },
     );
