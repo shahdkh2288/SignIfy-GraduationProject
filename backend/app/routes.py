@@ -257,7 +257,12 @@ def update_profile():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
+    # Get form data if files are included, otherwise get JSON data
     data = request.form if request.files else request.json
+    
+    # Check if any data was provided (either form fields or files)
+    if (not data or len(data) == 0) and len(request.files) == 0:
+        return jsonify({'error': 'No data provided to update profile'}), 400
     
     # Fields that can be updated
     if 'fullname' in data:
@@ -278,16 +283,23 @@ def update_profile():
     
     if 'dateofbirth' in data:
         try:
-            dob = datetime.strptime(data['dateofbirth'], '%Y-%m-%D').date()
+            dob = datetime.strptime(data['dateofbirth'], '%Y-%m-%d').date()
             user.dateofbirth = dob
             # Recalculate age
             today = datetime.now().date()
             user.age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
         except ValueError:
             return jsonify({'error': 'Invalid dateofbirth format. Use YYYY-MM-DD'}), 400
-    
-    # Handle profile image upload
-    if 'profile_image' in request.files:
+        
+    # Handle profile image removal or upload
+    if 'profile_image' in data and data['profile_image'] == "":
+        # User wants to remove their profile image
+        if user.profile_image:
+            old_image_path = os.path.join(os.path.dirname(__file__), 'static', user.profile_image.lstrip('/static/'))
+            if os.path.exists(old_image_path):
+                os.remove(old_image_path)
+            user.profile_image = ''
+    elif 'profile_image' in request.files:
         file = request.files['profile_image']
         if file and file.filename:
             # Validate file extension
