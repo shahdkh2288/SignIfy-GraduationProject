@@ -1,7 +1,10 @@
-from flask import request, jsonify
+from datetime import datetime
+from flask import request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from models import db, User
-from app import app
+from .models import db, User
+from flask import Blueprint
+
+bp = Blueprint('main', __name__)
 import bcrypt
 from elevenlabs import ElevenLabs
 from deepgram import DeepgramClient, PrerecordedOptions
@@ -9,38 +12,66 @@ import os
 import time
 import glob
 
-@app.route('/signup', methods=['POST'])
+@bp.route('/signup', methods=['POST'])
 def signup():
     data = request.json
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
-    age = data.get('age')
     status = data.get('status', 'active')
     isAdmin = data.get('isAdmin', False)
+    fullname = data.get('fullname', '')
+    dateofbirth = data.get('dateofbirth')  # Expected: YYYY-MM-DD format
+    role = data.get('role', "normal user")
+    profile_image = data.get('profile_image', '')
 
-    if not all([username, email, password, age]):
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not all([username, email, password, dateofbirth, fullname]):
+        return jsonify({'error': 'Missing required fields: username, email, password, fullname and dateofbirth are required'}), 400
 
     if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
         return jsonify({'error': 'Username or email already exists'}), 400
+    
+    # Validate Roles
+    valid_roles = ['normal user', 'hearing-impaired', 'speech-impaired']
+    if role not in valid_roles:
+        return jsonify({'error': f'Invalid role. Valid roles are: {", ".join(valid_roles)}'}), 400
 
+    # Parse dateofbirth
+    try:
+        dob = datetime.strptime(dateofbirth, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({'error': 'Invalid dateofbirth format. Use YYYY-MM-DD'}), 400
+    
+    # Calculate age based on dateofbirth
+    today = datetime.now().date()
+    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+    # encrypt password using bcrypt
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+    # Create new user
     new_user = User(
         username=username,
         email=email,
         password=password_hash,
         status=status,
         age=age,
-        isAdmin=isAdmin
+        isAdmin=isAdmin,
+        fullname=fullname,
+        dateofbirth=dob,
+        role=role,
+        profile_image=profile_image,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     )
     db.session.add(new_user)
     db.session.commit()
 
     return jsonify({'message': 'User created successfully'}), 201
 
-@app.route('/login', methods=['POST'])
+
+
+@bp.route('/login', methods=['POST'])
 def login():
     data = request.json
     username = data.get('username')
@@ -65,7 +96,7 @@ def login():
     }), 200
 
 
-@app.route('/protected', methods=['GET'])
+@bp.route('/protected', methods=['GET'])
 @jwt_required()
 def protected():
     user_id = get_jwt_identity()  # Returns string
@@ -87,7 +118,7 @@ def protected():
 
 
 
-@app.route('/tts', methods=['POST'])
+@bp.route('/tts', methods=['POST'])
 def text_to_speech():
     data = request.json
     text = data.get('text')
@@ -144,7 +175,7 @@ def text_to_speech():
 
 
 
-@app.route('/stt', methods=['POST'])
+@bp.route('/stt', methods=['POST'])
 @jwt_required()
 def speech_to_text():
     user_id = get_jwt_identity()
