@@ -130,7 +130,13 @@ def protected():
 
 
 @bp.route('/tts', methods=['POST'])
+@jwt_required()
 def text_to_speech():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
     data = request.json
     text = data.get('text')
     voice_id = data.get('voice_id', '21m00Tcm4TlvDq8ikWAM')
@@ -349,3 +355,34 @@ def update_profile():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to update profile: {str(e)}'}), 500
+    
+@bp.route('/change-password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.json
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+
+    if not old_password or not new_password:
+        return jsonify({'error': 'Old password and new password are required'}), 400
+
+    # Verify old password
+    if not bcrypt.checkpw(old_password.encode('utf-8'), user.password.encode('utf-8')):
+        return jsonify({'error': 'Old password is incorrect'}), 401
+
+    # Hash new password
+    new_password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    user.password = new_password_hash
+    user.updated_at = datetime.utcnow()
+
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Password changed successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to change password: {str(e)}'}), 500
