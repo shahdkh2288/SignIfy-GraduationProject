@@ -23,7 +23,6 @@ def signup():
     fullname = data.get('fullname', '')
     dateofbirth = data.get('dateofbirth')  # Expected: YYYY-MM-DD format
     role = data.get('role', "normal user")
-    profile_image = data.get('profile_image', '')
 
     if not all([username, email, password, dateofbirth, fullname]):
         return jsonify({'error': 'Missing required fields: username, email, password, fullname and dateofbirth are required'}), 400
@@ -60,7 +59,7 @@ def signup():
         fullname=fullname,
         dateofbirth=dob,
         role=role,
-        profile_image=profile_image,
+        profile_image='',
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
@@ -89,9 +88,15 @@ def login():
             'id': user.id,
             'username': user.username,
             'email': user.email,
+            'fullname': user.fullname,
+            'role': user.role,
             'status': user.status,
             'age': user.age,
-            'isAdmin': user.isAdmin
+            'dateofbirth': user.dateofbirth.strftime('%Y-%m-%d'),
+            'profile_image': user.profile_image,
+            'isAdmin': user.isAdmin,
+            'created_at': user.created_at.isoformat(),
+            'updated_at': user.updated_at.isoformat()
         }
     }), 200
 
@@ -109,9 +114,15 @@ def protected():
             'id': user.id,
             'username': user.username,
             'email': user.email,
+            'fullname': user.fullname,
+            'role': user.role,
             'status': user.status,
             'age': user.age,
-            'isAdmin': user.isAdmin
+            'dateofbirth': user.dateofbirth.strftime('%Y-%m-%d'),
+            'profile_image': user.profile_image,
+            'isAdmin': user.isAdmin,
+            'created_at': user.created_at.isoformat(),
+            'updated_at': user.updated_at.isoformat()
         }
     }), 200
 
@@ -235,3 +246,94 @@ def speech_to_text():
             except OSError as cleanup_error:
                 print(f"Failed to clean up file: {cleanup_error}")
         return jsonify({'error': f'Failed to transcribe audio: {str(e)}'}), 500
+
+
+
+@bp.route('/update-profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.form if request.files else request.json
+    
+    # Fields that can be updated
+    if 'fullname' in data:
+        user.fullname = data['fullname']
+    
+    if 'email' in data:
+        # Check if email is already taken by another user
+        existing_user = User.query.filter_by(email=data['email']).first()
+        if existing_user and existing_user.id != user.id:
+            return jsonify({'error': 'Email already exists'}), 400
+        user.email = data['email']
+    
+    if 'role' in data:
+        valid_roles = ['normal user', 'hearing-impaired', 'speech-impaired']
+        if data['role'] not in valid_roles:
+            return jsonify({'error': f'Invalid role. Valid roles are: {", ".join(valid_roles)}'}), 400
+        user.role = data['role']
+    
+    if 'dateofbirth' in data:
+        try:
+            dob = datetime.strptime(data['dateofbirth'], '%Y-%m-%D').date()
+            user.dateofbirth = dob
+            # Recalculate age
+            today = datetime.now().date()
+            user.age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        except ValueError:
+            return jsonify({'error': 'Invalid dateofbirth format. Use YYYY-MM-DD'}), 400
+    
+    # Handle profile image upload
+    if 'profile_image' in request.files:
+        file = request.files['profile_image']
+        if file and file.filename:
+            # Validate file extension
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+            if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                # Delete old profile image if it exists
+                if user.profile_image:
+                    old_image_path = os.path.join(os.path.dirname(__file__), 'static', user.profile_image.lstrip('/static/'))
+                    if os.path.exists(old_image_path):
+                        os.remove(old_image_path)
+                
+                # Create unique filename
+                timestamp = int(time.time() * 1000)
+                filename = f'profile_{timestamp}.{file.filename.rsplit(".", 1)[1].lower()}'
+                
+                # Ensure profile images directory exists
+                profile_dir = os.path.join(os.path.dirname(__file__), 'static', 'profile_images')
+                os.makedirs(profile_dir, exist_ok=True)
+                
+                # Save file
+                file_path = os.path.join(profile_dir, filename)
+                file.save(file_path)
+                user.profile_image = f'/static/profile_images/{filename}'
+            else:
+                return jsonify({'error': 'Invalid image format. Use PNG, JPG, JPEG, or GIF'}), 400
+
+    # Update the updated_at timestamp
+    user.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Profile updated successfully',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'fullname': user.fullname,
+                'role': user.role,
+                'status': user.status,
+                'age': user.age,
+                'dateofbirth': user.dateofbirth.strftime('%Y-%m-%d'),
+                'profile_image': user.profile_image,
+                'isAdmin': user.isAdmin
+            }
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update profile: {str(e)}'}), 500
