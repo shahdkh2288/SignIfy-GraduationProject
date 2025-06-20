@@ -1,9 +1,8 @@
-
 import 'package:flutter/material.dart';
-import 'package:signify_project/Splash%20and%20Onboarding%20Screens/DotIndicator.dart';
+import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/DotIndicator.dart';
 
-class OnboardingScreen4 extends StatelessWidget{
-  const OnboardingScreen4({super.key});
+class OnBoardingScreen3 extends StatelessWidget{
+  const OnBoardingScreen3({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,10 +15,10 @@ class OnboardingScreen4 extends StatelessWidget{
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/onboarding4.png', width: 300, height: 300),
+                Image.asset('assets/onboarding3.png', width: 300, height: 300),
                 const SizedBox(height: 20),
                 const Text(
-                  'Convert Between Speech',
+                  'Translate Sign Language to',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -27,8 +26,8 @@ class OnboardingScreen4 extends StatelessWidget{
                     color: Color(0xFF005FCE),
                   ),
                 ),
-                const Text(
-                  ' and Text',
+                const Text (
+                  'Text & Voice',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -38,7 +37,7 @@ class OnboardingScreen4 extends StatelessWidget{
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Speak to transcribe words instantly or hear written text read aloud with ease',
+                  'Use your camera to recognize\n sign language, turn it into text,\n and hear it spoken aloud',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -52,9 +51,9 @@ class OnboardingScreen4 extends StatelessWidget{
                   children: const [
                     DotIndicator(isActive: false),
                     SizedBox(width: 2), 
-                    DotIndicator(isActive: false),
-                    SizedBox(width: 2),
                     DotIndicator(isActive: true),
+                    SizedBox(width: 2),
+                    DotIndicator(isActive: false),
                   ],
                 ),
                 const SizedBox(height: 120,width: 60,),
@@ -79,7 +78,7 @@ class OnboardingScreen4 extends StatelessWidget{
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/login'); 
+                          Navigator.pushNamed(context, '/onboarding4'); 
                         },
                         child: const Text(
                           'Next',

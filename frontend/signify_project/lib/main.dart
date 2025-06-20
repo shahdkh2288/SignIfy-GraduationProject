@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding2.dart';
-import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding3.dart';
-import 'package:signify_project/Splash%20and%20Onboarding%20Screens/onboarding4.dart';
-import 'package:signify_project/authentication/VerifyAccount.dart';
-import 'package:signify_project/authentication/createNewPass.dart';
-import 'package:signify_project/authentication/forgotPassword.dart';
-import 'package:signify_project/authentication/login.dart';
-import 'package:signify_project/authentication/signup.dart';
-import 'Splash and Onboarding Screens/Splash.dart';
-import 'Splash and Onboarding Screens/Onboarding1.dart';
+import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding1.dart';
+
+import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding2.dart';
+import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding3.dart';
+import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding4.dart';
+import 'package:signify_project/features/authentication/VerifyAccount.dart';
+import 'package:signify_project/features/authentication/createNewPass.dart';
+import 'package:signify_project/features/authentication/forgotPassword.dart';
+import 'package:signify_project/features/authentication/login.dart';
+import 'package:signify_project/features/authentication/signup.dart';
+import 'features/Splash and Onboarding Screens/Splash.dart';
+
 void main() {
   runApp(MyApp());
 }
