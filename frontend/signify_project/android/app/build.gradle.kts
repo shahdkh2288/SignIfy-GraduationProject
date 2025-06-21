@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.signify_project"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"     // updated ndk version to match with "flutter_secure_storage" and "path_provider_android" libraries
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

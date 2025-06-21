@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:signify_project/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreeState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreeState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
   bool _isPasswordVisible = false;
-  bool _isLoading = false; 
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +27,7 @@ class _LoginScreeState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 20),
-              Center(
-                child: Image.asset('assets/logo2.png', height: 130),
-              ),
+              Center(child: Image.asset('assets/logo2.png', height: 130)),
               SizedBox(height: 8),
               Text.rich(
                 TextSpan(
@@ -75,15 +75,24 @@ class _LoginScreeState extends State<LoginScreen> {
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF005FCE), width: 2),
+                          borderSide: BorderSide(
+                            color: Color(0xFF005FCE),
+                            width: 2,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF005FCE), width: 2),
+                          borderSide: BorderSide(
+                            color: Color(0xFF005FCE),
+                            width: 2,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      style: TextStyle(fontFamily: 'LeagueSpartan', fontSize: 16),
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 16,
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email or username';
@@ -115,7 +124,9 @@ class _LoginScreeState extends State<LoginScreen> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Color.fromARGB(255, 162, 162, 162),
                           ),
                           onPressed: () {
@@ -125,15 +136,24 @@ class _LoginScreeState extends State<LoginScreen> {
                           },
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF005FCE), width: 2),
+                          borderSide: BorderSide(
+                            color: Color(0xFF005FCE),
+                            width: 2,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF005FCE), width: 2),
+                          borderSide: BorderSide(
+                            color: Color(0xFF005FCE),
+                            width: 2,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      style: TextStyle(fontFamily: 'LeagueSpartan', fontSize: 16),
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 16,
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';
@@ -143,14 +163,13 @@ class _LoginScreeState extends State<LoginScreen> {
                         }
                         return null;
                       },
-                      
                     ),
                     SizedBox(height: 35),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/forgotPassword'); 
+                          Navigator.pushNamed(context, '/forgotPassword');
                         },
                         child: Text(
                           'Forgot Password ?',
@@ -165,39 +184,69 @@ class _LoginScreeState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () async {
-                              if (_formKey.currentState!.validate()) {
-                                setState(() {
-                                  _isLoading = true;
-                                });
-                                await Future.delayed(Duration(seconds: 2)); 
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                                Navigator.pushNamed(context, '/home');
-                              }
-                            },
+                      onPressed:
+                          _isLoading
+                              ? null
+                              : () async {
+                                if (_formKey.currentState!.validate()) {
+                                  setState(() {
+                                    _isLoading = true;
+                                  });
+                                  final result = await _authService.login(
+                                    _emailController.text.trim(),
+                                    _passwordController.text.trim(),
+                                  );
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                  if (result['success'] == true) {
+                                    // Optionally show a success message
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Login successful!'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                    await Future.delayed(
+                                      Duration(milliseconds: 500),
+                                    );
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/home',
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          result['message'] ?? 'Login failed',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF005FCE),
-                        padding: EdgeInsets.symmetric(horizontal: 163, vertical: 10),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 163,
+                          vertical: 10,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
-                      child: _isLoading
-                          ? CircularProgressIndicator(
-                              color: Colors.white,
-                            )
-                          : Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontFamily: 'LeagueSpartan',
-                                color: Colors.white,
+                      child:
+                          _isLoading
+                              ? CircularProgressIndicator(color: Colors.white)
+                              : Text(
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontFamily: 'LeagueSpartan',
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
                     ),
                     SizedBox(height: 68),
                     Center(
@@ -220,12 +269,10 @@ class _LoginScreeState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center, 
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            
-                          },
+                          onTap: () {},
                           child: Image.asset(
                             'assets/googleIcon.png',
                             height: 50,
@@ -244,7 +291,7 @@ class _LoginScreeState extends State<LoginScreen> {
                           ),
                         ),
                       ],
-                    ),      
+                    ),
                     SizedBox(height: 65),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -259,7 +306,7 @@ class _LoginScreeState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushNamed(context, '/signup'); 
+                            Navigator.pushNamed(context, '/signup');
                           },
                           child: Text(
                             'Sign Up',
@@ -272,9 +319,8 @@ class _LoginScreeState extends State<LoginScreen> {
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ],
-                  
                 ),
               ),
             ],
