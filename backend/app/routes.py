@@ -18,8 +18,6 @@ def signup():
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
-    status = data.get('status', 'active')
-    isAdmin = data.get('isAdmin', False)
     fullname = data.get('fullname', '')
     dateofbirth = data.get('dateofbirth')  # Expected: YYYY-MM-DD format
     role = data.get('role', "normal user")
@@ -53,9 +51,9 @@ def signup():
         username=username,
         email=email,
         password=password_hash,
-        status=status,
+        status="active",
         age=age,
-        isAdmin=isAdmin,
+        isAdmin=False,
         fullname=fullname,
         dateofbirth=dob,
         role=role,
@@ -73,12 +71,21 @@ def signup():
 @bp.route('/login', methods=['POST'])
 def login():
     data = request.json
+    email = data.get('email')
     username = data.get('username')
     password = data.get('password')
 
-    user = User.query.filter_by(username=username).first()
-    if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-        return jsonify({'error': 'Invalid username or password'}), 401
+    if not email:
+        user = User.query.filter_by(username=username).first()
+        if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+            return jsonify({'error': 'Invalid username or password'}), 401
+    else:
+        user = User.query.filter_by(email=email).first()
+        if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+            return jsonify({'error': 'Invalid email or password'}), 401
+        
+    if user.status != "active":
+        return jsonify({'error': 'User account is not active'}), 403
 
     access_token = create_access_token(identity=str(user.id))  # String identity
     return jsonify({

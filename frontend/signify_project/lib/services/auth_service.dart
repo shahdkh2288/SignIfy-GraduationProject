@@ -31,14 +31,14 @@ class AuthService {
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         final accessToken = jsonResponse['access_token'];
-        final username = jsonResponse['username'];
+        final user = jsonResponse['user'];
 
         // Store the access token securely
         await storage.write(key: 'access_token', value: accessToken);
 
         return {
           'success': true,
-          'username': username,
+          'user': user,
           'message': jsonResponse['message'],
         };
       } else {
@@ -46,6 +46,46 @@ class AuthService {
         return {
           'success': false,
           'message': jsonResponse['error'] ?? 'Login failed',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> signup({
+    required String fullname,
+    required String username,
+    required String email,
+    required String password,
+    required String dateofbirth,
+    required String role,
+  }) async {
+    try {
+      final body = {
+        'fullname': fullname.trim(),
+        'username': username.trim(),
+        'email': email.trim(),
+        'password': password.trim(),
+        'dateofbirth': dateofbirth.trim(),
+        'role': role.trim(),
+      };
+      final response = await http.post(
+        Uri.parse('$baseUrl/signup'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+      if (response.statusCode == 201) {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': true,
+          'message': jsonResponse['message'] ?? 'Signup successful',
+        };
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': false,
+          'message': jsonResponse['error'] ?? 'Signup failed',
         };
       }
     } catch (e) {
