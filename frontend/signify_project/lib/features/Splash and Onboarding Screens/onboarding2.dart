@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:signify_project/Splash%20and%20Onboarding%20Screens/DotIndicator.dart';
+import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/DotIndicator.dart';
 
 class OnboardingScreen2 extends StatelessWidget{
   const OnboardingScreen2({super.key});

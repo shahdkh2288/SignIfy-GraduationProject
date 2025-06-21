@@ -21,7 +21,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   int _selectedRole = 1;
   bool _isLoading = false;
 
-  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  final emailRegex = RegExp(
+    r'^[\w\.-]+@(?:gmail\.com|yahoo\.com|outlook\.com|hotmail\.com|icloud\.com)$',
+  );
   final passwordRegex =
       RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$');
 
@@ -128,7 +130,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             return 'Email is required';
                           }
                           if (!emailRegex.hasMatch(value)) {
-                            return 'Enter a valid email';
+                            return 'Enter a valid Gmail, Yahoo, Outlook, Hotmail, or iCloud email';
                           }
                           return null;
                         },
@@ -256,7 +258,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Sign up successful!'),
-                                        backgroundColor: Colors.white,
+                                        backgroundColor: Colors.green,
                                       ),
                                     );
                                     
@@ -436,4 +438,5 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
+
 
