@@ -191,6 +191,7 @@ def text_to_speech():
             for chunk in audio_generator:
                 if chunk:  # Ensure chunk is not empty
                     f.write(chunk)
+    
 
         return jsonify({'message': 'Audio generated', 'file': f'/static/{output_filename}'}), 200
     except Exception as e:
@@ -241,6 +242,7 @@ def speech_to_text():
             smart_format=True,
         )
         response = deepgram.listen.prerecorded.v("1").transcribe_file(source, options)
+        print('Deepgram response:', response)  # Add this line
 
         # Clean up temporary file
         os.remove(audio_path)
@@ -252,6 +254,8 @@ def speech_to_text():
 
         return jsonify({'message': 'Transcription successful', 'transcript': transcript}), 200
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # Print full error to console
         # Clean up file if it exists
         if os.path.exists(audio_path):
             try:
