@@ -29,7 +29,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$',
   );
 
-  final _authService = AuthService(); // Initialize AuthService
+  final _authService = AuthService(); 
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +42,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 20),
-              Center(child: Image.asset('assets/logo2.png', height: 130)),
+              Center(child: Image.asset('assets/images/logo2.png', height: 130)),
               SizedBox(height: 8),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: Image.asset('assets/back.png', height: 50, width: 50),
+                icon: Image.asset('assets/images/back.png', height: 50, width: 50),
               ),
               SizedBox(height: 20),
               Text(
@@ -69,7 +69,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       prefixIcon: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Image.asset(
-                          'assets/userIcon.png',
+                          'assets/images/userIcon.png',
                           height: 20,
                           width: 20,
                           fit: BoxFit.contain,
@@ -92,7 +92,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       prefixIcon: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Image.asset(
-                          'assets/userIcon.png',
+                          'assets/images/userIcon.png',
                           height: 20,
                           width: 20,
                           fit: BoxFit.contain,
@@ -118,7 +118,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       prefixIcon: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Image.asset(
-                          'assets/email.png',
+                          'assets/images/email.png',
                           height: 20,
                           width: 20,
                           fit: BoxFit.contain,
@@ -142,7 +142,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       prefixIcon: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Image.asset(
-                          'assets/passIcon.png',
+                          'assets/images/passIcon.png',
                           height: 20,
                           width: 20,
                           fit: BoxFit.contain,
@@ -171,7 +171,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       prefixIcon: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Image.asset(
-                          'assets/passIcon.png',
+                          'assets/images/passIcon.png',
                           height: 20,
                           width: 20,
                           fit: BoxFit.contain,
@@ -210,17 +210,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       children: [
                         _buildRoleOption(
                           0,
-                          Image.asset('assets/radioUser.png'),
+                          Image.asset('assets/images/radioUser.png'),
                           "",
                         ),
                         _buildRoleOption(
                           1,
-                          Image.asset('assets/radioUnhear.png'),
+                          Image.asset('assets/images/radioUnhear.png'),
                           "",
                         ),
                         _buildRoleOption(
                           2,
-                          Image.asset('assets/radioNospeech.png'),
+                          Image.asset('assets/images/radioNospeech.png'),
                           "",
                         ),
                       ],
@@ -406,7 +406,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           prefixIcon: Padding(
             padding: const EdgeInsets.all(12.0),
             child: Image.asset(
-              'assets/DOB.png',
+              'assets/images/DOB.png',
               height: 20,
               width: 20,
               fit: BoxFit.contain,

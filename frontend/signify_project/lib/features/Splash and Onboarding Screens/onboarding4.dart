@@ -16,7 +16,7 @@ class OnboardingScreen4 extends StatelessWidget{
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/onboarding4.png', width: 300, height: 300),
+                Image.asset('assets/images/onboarding4.png', width: 300, height: 300),
                 const SizedBox(height: 20),
                 const Text(
                   'Convert Between Speech',

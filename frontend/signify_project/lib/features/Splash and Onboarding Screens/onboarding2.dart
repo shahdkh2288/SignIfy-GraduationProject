@@ -16,7 +16,7 @@ class OnboardingScreen2 extends StatelessWidget{
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/onboarding2.png', width: 300, height: 300),
+                Image.asset('assets/images/onboarding2.png', width: 300, height: 300),
                 const SizedBox(height: 20),
                 const Text(
                   'Detect and Translate Signs',

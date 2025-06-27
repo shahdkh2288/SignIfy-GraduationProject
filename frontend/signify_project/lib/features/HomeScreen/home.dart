@@ -345,7 +345,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Navigator.pushNamed(context, '/home');
                 },
                 child: Image.asset(
-                  'assets/home.png',
+                  'assets/images/home.png',
                   width: 59,
                   height: 52,
                 ),
@@ -359,7 +359,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Navigator.pushNamed(context, '/settings');
                 },
                 child: Image.asset(
-                  'assets/settings.png',
+                  'assets/images/settings.png',
                   width: 56,
                   height: 60,
                 ),
@@ -374,7 +374,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Navigator.pushNamed(context, '/profile');
                 },
                 child: Image.asset(
-                  'assets/user.png',
+                  'assets/images/user.png',
                   width: 58,
                   height: 58,
                 ),

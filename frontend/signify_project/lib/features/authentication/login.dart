@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 20),
-              Center(child: Image.asset('assets/logo2.png', height: 130)),
+              Center(child: Image.asset('assets/images/logo2.png', height: 130)),
               SizedBox(height: 8),
               Text.rich(
                 TextSpan(
@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Image.asset(
-                            'assets/emailIcon.png',
+                            'assets/images/emailIcon.png',
                             height: 20,
                             width: 20,
                             fit: BoxFit.contain,
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Image.asset(
-                            'assets/passIcon.png',
+                            'assets/images/passIcon.png',
                             height: 20,
                             width: 20,
                             fit: BoxFit.contain,
@@ -275,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         GestureDetector(
                           onTap: () {},
                           child: Image.asset(
-                            'assets/googleIcon.png',
+                            'assets/images/googleIcon.png',
                             height: 50,
                             width: 50,
                           ),
@@ -286,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             // icloud login
                           },
                           child: Image.asset(
-                            'assets/icloudIcon.png',
+                            'assets/images/icloudIcon.png',
                             height: 50,
                             width: 50,
                           ),
