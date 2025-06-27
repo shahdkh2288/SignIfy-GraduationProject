@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:signify_project/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -200,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     _isLoading = false;
                                   });
                                   if (result['success'] == true) {
-                                    // Optionally show a success message
+                                    
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Login successful!'),
