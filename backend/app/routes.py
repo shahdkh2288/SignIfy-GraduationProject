@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, Response
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from .models import db, User
 from flask import Blueprint
@@ -10,7 +10,6 @@ from elevenlabs import ElevenLabs
 from deepgram import DeepgramClient, PrerecordedOptions
 import os
 import time
-import glob
 
 @bp.route('/signup', methods=['POST'])
 def signup():
@@ -138,7 +137,7 @@ def protected():
 
 @bp.route('/tts', methods=['POST'])
 @jwt_required()
-def text_to_speech():
+def text_to_speech_direct():
     user_id = get_jwt_identity()
     user = User.query.get(int(user_id))
     if not user:
@@ -157,21 +156,6 @@ def text_to_speech():
 
     client = ElevenLabs(api_key=os.getenv('ELEVENLABS_API_KEY'))
     try:
-        # Ensure static directory exists
-        static_dir = os.path.join(os.path.dirname(__file__), 'static')
-        os.makedirs(static_dir, exist_ok=True)
-
-        # Clean up old files (older than 1 hour)
-        now = time.time()
-        for old_file in glob.glob(os.path.join(static_dir, 'output_*.mp3')):
-            if os.path.getmtime(old_file) < now - 3600:  # 1 hour
-                os.remove(old_file)
-
-        # Generate unique filename
-        timestamp = int(time.time() * 1000)
-        output_filename = f'output_{timestamp}.mp3'
-        output_path = os.path.join(static_dir, output_filename)
-
         # Generate audio (returns a generator)
         audio_generator = client.text_to_speech.convert(
             text=text,
@@ -186,17 +170,23 @@ def text_to_speech():
             output_format='mp3_44100_128'
         )
 
-        # Write audio chunks to file
-        with open(output_path, 'wb') as f:
-            for chunk in audio_generator:
-                if chunk:  # Ensure chunk is not empty
-                    f.write(chunk)
-    
+        # Collect audio bytes
+        audio_bytes = b''
+        for chunk in audio_generator:
+            if chunk:
+                audio_bytes += chunk
 
-        return jsonify({'message': 'Audio generated', 'file': f'/static/{output_filename}'}), 200
+        # Return audio file directly
+        return Response(
+            audio_bytes,
+            mimetype='audio/mpeg',
+            headers={
+                'Content-Disposition': 'attachment; filename="tts_audio.mp3"',
+                'Content-Length': str(len(audio_bytes))
+            }
+        )
     except Exception as e:
         return jsonify({'error': f'Failed to generate audio: {str(e)}'}), 500
-    
 
 
 
@@ -397,3 +387,4 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to change password: {str(e)}'}), 500
+    

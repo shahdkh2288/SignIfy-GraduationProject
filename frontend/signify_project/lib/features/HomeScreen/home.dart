@@ -21,13 +21,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final record = AudioRecorder();
 
   bool _isListening = false;
-  String? _recordedFilePath;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: ref.read(inputTextProvider));
     _player = AudioPlayer();
+
+    // Configure audio player
+    _configureAudioPlayer();
 
     _controller.addListener(() {
       if (_controller.text != ref.read(inputTextProvider)) {
@@ -36,11 +38,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _configureAudioPlayer() async {
+    try {
+      // Set audio context for Android with more aggressive settings
+      await _player.setAudioContext(
+        AudioContext(
+          android: AudioContextAndroid(
+            isSpeakerphoneOn: true,
+            stayAwake: true,
+            contentType: AndroidContentType.speech, // Changed to speech
+            usageType: AndroidUsageType.media,
+            audioFocus: AndroidAudioFocus.gainTransient, // Changed to transient
+          ),
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.playback,
+            options: {AVAudioSessionOptions.defaultToSpeaker},
+          ),
+        ),
+      );
+
+      // Set volume to maximum
+      await _player.setVolume(1.0);
+
+      // Set player mode
+      await _player.setPlayerMode(PlayerMode.mediaPlayer);
+
+      print('Audio player configured successfully');
+    } catch (e) {
+      print('Audio player configuration error: $e');
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
     _player.dispose();
-    record.dispose(); 
+    record.dispose();
     super.dispose();
   }
 
@@ -55,7 +88,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final tempDir = await getTemporaryDirectory();
     final filePath = '${tempDir.path}/recorded.m4a';
-    _recordedFilePath = filePath;
 
     try {
       await record.start(
@@ -79,7 +111,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       if (path != null && File(path).existsSync()) {
         final audioFile = File(path);
-        final transcript = await STTService.sendAudioForTranscription(audioFile);
+        final transcript = await STTService.sendAudioForTranscription(
+          audioFile,
+        );
 
         if (transcript != null) {
           ref.read(sttTextProvider.notifier).state = transcript;
@@ -94,19 +128,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  
-
-  Future<void> _playAudio(String url) async {
+  Future<void> _playAudioFromFile(String filePath) async {
     try {
-      await _player.stop();
-      await Future.delayed(const Duration(milliseconds: 500));
-      await _player.setSource(UrlSource(url));
-      await _player.resume();
+      print('Attempting to play audio from file: $filePath');
+
+      // Check if file exists and get its size
+      final file = File(filePath);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        print('Audio file exists, size: $fileSize bytes');
+      } else {
+        print('Audio file does not exist!');
+        return;
+      }
+
+      // Stop any current playback
+      if (_player.state == PlayerState.playing) {
+        await _player.stop();
+      }
+
+      // Small delay to ensure cleanup
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Set volume to maximum
+      await _player.setVolume(1.0);
+
+      // Set player mode to media (important for Android)
+      await _player.setPlayerMode(PlayerMode.mediaPlayer);
+
+      // Play the audio directly
+      await _player.play(DeviceFileSource(filePath));
+
+      print('Audio playback started successfully from local file');
+
+      // Listen for player state changes (but don't create multiple listeners)
+      _player.onPlayerStateChanged.take(5).listen((PlayerState state) {
+        print('Player state changed to: $state');
+        if (state == PlayerState.playing) {
+          print(
+            'Audio is now playing - check device volume and speaker settings',
+          );
+        }
+      });
+
+      // Listen for completion
+      _player.onPlayerComplete.take(1).listen((event) {
+        print('Audio playback completed');
+      });
+
+      // Listen for duration
+      _player.onDurationChanged.take(1).listen((Duration duration) {
+        print('Audio duration: ${duration.inMilliseconds}ms');
+      });
     } catch (e) {
-      print('Audio error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Audio playback failed')),
-      );
+      print('Audio playback error: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Audio playback failed: $e')));
     }
   }
 
@@ -126,11 +204,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0), 
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -151,7 +228,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.blue.shade100,
-                    child: const Icon(Icons.person, size: 80, color: Color(0xFF005FCE)),
+                    child: const Icon(
+                      Icons.person,
+                      size: 80,
+                      color: Color(0xFF005FCE),
+                    ),
                   ),
                 ],
               ),
@@ -189,12 +270,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               alignment: Alignment.bottomRight,
                               child: Text(
                                 '${inputText.length}/750',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        
+
                         Positioned(
                           top: 0,
                           right: 0,
@@ -202,34 +286,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    : const Icon(Icons.volume_up),
-                                onPressed: inputText.isEmpty || isLoading
-                                    ? null
-                                    : () async {
-                                        ref.read(isLoadingProvider.notifier).state = true;
-                                        final url = await TTSService.getTtsAudioUrl(inputText);
-                                        ref.read(isLoadingProvider.notifier).state = false;
-
-                                        if (url != null) {
-                                          ref.read(ttsAudioUrlProvider.notifier).state = url;
-                                          await _playAudio(url);
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Failed to generate audio')),
+                                icon:
+                                    isLoading
+                                        ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                        : const Icon(Icons.volume_up),
+                                onPressed:
+                                    inputText.isEmpty || isLoading
+                                        ? null
+                                        : () async {
+                                          print(
+                                            'TTS button pressed with text: $inputText',
                                           );
-                                        }
-                                      },
+                                          ref
+                                              .read(isLoadingProvider.notifier)
+                                              .state = true;
+                                          final filePath =
+                                              await TTSService.getTtsAudioDirect(
+                                                inputText,
+                                              );
+                                          ref
+                                              .read(isLoadingProvider.notifier)
+                                              .state = false;
+
+                                          print(
+                                            'TTS service returned file path: $filePath',
+                                          );
+                                          if (filePath != null) {
+                                            await _playAudioFromFile(filePath);
+                                          } else {
+                                            print(
+                                              'TTS service returned null file path',
+                                            );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Failed to generate audio',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
                               ),
                               IconButton(
                                 icon: const Icon(Icons.clear),
                                 onPressed: () {
-                                  ref.read(inputTextProvider.notifier).state = '';
+                                  ref.read(inputTextProvider.notifier).state =
+                                      '';
                                   _controller.clear();
                                 },
                               ),
@@ -241,7 +351,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 32), 
+              const SizedBox(height: 32),
 
               // STT Card
               SizedBox(
@@ -270,7 +380,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               alignment: Alignment.bottomRight,
                               child: Text(
                                 '${sttText.length}/750',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ],
@@ -290,8 +403,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 80), 
-              
+              const SizedBox(height: 80),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -309,12 +422,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   InkWell(
-                    onTap: () {}, 
+                    onTap: () {},
                     borderRadius: BorderRadius.circular(40),
                     child: CircleAvatar(
                       radius: 55,
                       backgroundColor: Colors.blue.shade100,
-                      child: const Icon(Icons.camera_alt, size: 40, color: Colors.blue),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 40,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                 ],
@@ -336,7 +453,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Stack(
           children: [
-            
             Positioned(
               top: 8,
               left: 16,
@@ -344,14 +460,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: () {
                   Navigator.pushNamed(context, '/home');
                 },
-                child: Image.asset(
-                  'assets/home.png',
-                  width: 59,
-                  height: 52,
-                ),
+                child: Image.asset('assets/home.png', width: 59, height: 52),
               ),
             ),
-            
+
             Align(
               alignment: Alignment.topCenter,
               child: GestureDetector(
@@ -365,7 +477,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-            
+
             Positioned(
               top: 8,
               right: 16,
@@ -373,11 +485,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: () {
                   Navigator.pushNamed(context, '/profile');
                 },
-                child: Image.asset(
-                  'assets/user.png',
-                  width: 58,
-                  height: 58,
-                ),
+                child: Image.asset('assets/user.png', width: 58, height: 58),
               ),
             ),
           ],
@@ -386,5 +494,3 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
-
-
