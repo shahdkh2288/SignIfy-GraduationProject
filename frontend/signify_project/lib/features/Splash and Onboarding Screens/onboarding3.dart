@@ -15,7 +15,7 @@ class OnBoardingScreen3 extends StatelessWidget{
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/onboarding3.png', width: 300, height: 300),
+                Image.asset('assets/images/onboarding3.png', width: 300, height: 300),
                 const SizedBox(height: 20),
                 const Text(
                   'Translate Sign Language to',

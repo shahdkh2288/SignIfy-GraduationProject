@@ -12,6 +12,7 @@ import 'package:signify_project/features/authentication/login.dart';
 import 'package:signify_project/features/authentication/signup.dart';
 import 'features/Splash and Onboarding Screens/Splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:signify_project/features/userProfile/viewProfile.dart'; 
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -43,7 +44,7 @@ class MyApp extends StatelessWidget {
         '/verifyAccount': (context) => Verifyaccount(),
         '/createNewPassword': (context) => createNewPassword(),
         '/home': (context) => HomeScreen(),
-        
+        '/profile': (context) => ViewProfileScreen(),
       },
     );
   }

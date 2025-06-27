@@ -245,7 +245,7 @@ def speech_to_text():
         return jsonify({'message': 'Transcription successful', 'transcript': transcript}), 200
     except Exception as e:
         import traceback
-        traceback.print_exc()  # Print full error to console
+        traceback.print_exc()  
         # Clean up file if it exists
         if os.path.exists(audio_path):
             try:

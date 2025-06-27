@@ -69,28 +69,33 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-  - assets/splash_image.png
-  - assets/onboarding1.png
-  - assets/onboarding2.png
-  - assets/onboarding3.png
-  - assets/onboarding4.png
-  - assets/logo2.png
-  - assets/emailIcon.png
-  - assets/passIcon.png
-  - assets/googleIcon.png
-  - assets/icloudIcon.png
-  - assets/back.png
-  - assets/userIcon.png
-  - assets/email.png
-  - assets/DOB.png
-  - assets/radioUnhear.png
-  - assets/radioNospeech.png
-  - assets/radioUser.png
-  - assets/user.png
-  - assets/home.png
-  - assets/settings.png
-  - assets/microphone.png
-  - assets/camera.png
+  - assets/images/splash_image.png
+  - assets/images/onboarding1.png
+  - assets/images/onboarding2.png
+  - assets/images/onboarding3.png
+  - assets/images/onboarding4.png
+  - assets/images/logo2.png
+  - assets/images/emailIcon.png
+  - assets/images/passIcon.png
+  - assets/images/googleIcon.png
+  - assets/images/icloudIcon.png
+  - assets/images/back.png
+  - assets/images/userIcon.png
+  - assets/images/email.png
+  - assets/images/DOB.png
+  - assets/images/radioUnhear.png
+  - assets/images/radioNospeech.png
+  - assets/images/radioUser.png
+  - assets/images/user.png
+  - assets/images/home.png
+  - assets/images/settings.png
+  - assets/images/microphone.png
+  - assets/images/camera.png
+  - assets/images/logout.png
+  - assets/images/b_user.png
+  - assets/images/b_email.png
+  - assets/images/b_calendar.png
+  - assets/images/b_setting.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

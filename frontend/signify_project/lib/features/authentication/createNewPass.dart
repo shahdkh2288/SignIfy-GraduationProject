@@ -35,13 +35,13 @@ class _createNewPasswordState extends State<createNewPassword> {
             children: [
               SizedBox(height: 20),
               Center(
-                child: Image.asset('assets/logo2.png', height: 130),
+                child: Image.asset('assets/images/logo2.png', height: 130),
               ),
               SizedBox(height: 8),
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: Image.asset(
-                  'assets/back.png',
+                  'assets/images/back.png',
                   height: 50,
                   width: 50,
                 ),
@@ -89,7 +89,7 @@ class _createNewPasswordState extends State<createNewPassword> {
                   prefixIcon: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Image.asset(
-                      'assets/passIcon.png', 
+                      'assets/images/passIcon.png', 
                       height: 20,
                       width: 20,
                       fit: BoxFit.contain,
@@ -142,7 +142,7 @@ class _createNewPasswordState extends State<createNewPassword> {
                   prefixIcon: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Image.asset(
-                      'assets/passIcon.png',
+                      'assets/images/passIcon.png',
                       height: 20,
                       width: 20,
                       fit: BoxFit.contain,

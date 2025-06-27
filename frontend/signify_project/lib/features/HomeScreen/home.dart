@@ -460,10 +460,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: () {
                   Navigator.pushNamed(context, '/home');
                 },
-                child: Image.asset('assets/home.png', width: 59, height: 52),
+                child: Image.asset(
+                  'assets/images/home.png',
+                  width: 59,
+                  height: 52,
+                ),
               ),
             ),
-
             Align(
               alignment: Alignment.topCenter,
               child: GestureDetector(
@@ -471,13 +474,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Navigator.pushNamed(context, '/settings');
                 },
                 child: Image.asset(
-                  'assets/settings.png',
+                  'assets/images/settings.png',
                   width: 56,
                   height: 60,
                 ),
               ),
             ),
-
             Positioned(
               top: 8,
               right: 16,
@@ -485,7 +487,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: () {
                   Navigator.pushNamed(context, '/profile');
                 },
-                child: Image.asset('assets/user.png', width: 58, height: 58),
+                child: Image.asset(
+                  'assets/images/user.png',
+                  width: 58,
+                  height: 58,
+                ),
               ),
             ),
           ],
