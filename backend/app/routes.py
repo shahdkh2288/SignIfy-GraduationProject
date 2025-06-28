@@ -1,16 +1,18 @@
 from datetime import datetime
 from flask import request, jsonify, current_app, Response
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from .models import db, User
+from .models import db, User, TTSPreferences, STTPreferences
 from flask import Blueprint
-
-bp = Blueprint('main', __name__)
 import bcrypt
 from elevenlabs import ElevenLabs
 from deepgram import DeepgramClient, PrerecordedOptions
 import os
 import time
 
+bp = Blueprint('main', __name__)
+
+
+#-------------------------SIGN UP------------------------------------------------
 @bp.route('/signup', methods=['POST'])
 def signup():
     data = request.json
@@ -61,11 +63,33 @@ def signup():
         updated_at=datetime.utcnow()
     )
     db.session.add(new_user)
+    db.session.flush()  # Get user.id before commit
+
+    tts= TTSPreferences(
+        user_id=new_user.id,
+        voice_id='21m00Tcm4TlvDq8ikWAM',  # Default voice ID (Rachel)
+        stability=0.5,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+
+    stt= STTPreferences(
+        user_id=new_user.id,
+        language='en',  # Default language
+        smart_format=True,  # Default smart format
+        profanity_filter=False,  # Default profanity filter off
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+
+    db.session.add(tts)
+    db.session.add(stt)
     db.session.commit()
 
     return jsonify({'message': 'User created successfully'}), 201
 
 
+#-------------------------LOGIN------------------------------------------------
 
 @bp.route('/login', methods=['POST'])
 def login():
@@ -107,6 +131,7 @@ def login():
     }), 200
 
 
+#-------------------------PROTECTED -------------------------------------------------
 @bp.route('/protected', methods=['GET'])
 @jwt_required()
 def protected():
@@ -134,7 +159,7 @@ def protected():
 
 
 
-
+#--------------------------TTS------------------------------------------------
 @bp.route('/tts', methods=['POST'])
 @jwt_required()
 def text_to_speech_direct():
@@ -143,29 +168,42 @@ def text_to_speech_direct():
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
+    tts_prefs = user.tts_preferences
+    if not tts_prefs:
+        return jsonify({'error': 'TTS preferences not found for user'}), 404
+    
     data = request.json
     text = data.get('text')
-    voice_id = data.get('voice_id', '21m00Tcm4TlvDq8ikWAM')
-    stability = data.get('stability', 0.5)
-    similarity = data.get('similarity', 0.75)
-    speed = data.get('speed', 1.0)
-    model_id = data.get('model_id', 'eleven_multilingual_v2')
-
     if not text:
         return jsonify({'error': 'Text is required'}), 400
+    
+
+    voice_id = tts_prefs.voice_id  # Access model attribute directly
+    stability = tts_prefs.stability     #range (0.0 to 1.0)
+
+    
+    #Pable (male)  or Rachel (female)
+    if voice_id not in ["pNInz6obpgDQGcFmaJgB","21m00Tcm4TlvDq8ikWAM"]:
+        return jsonify({'error': 'Invalid voice type, choose either male or female'}), 400
+
+    if stability<0.0 or stability>1.0:
+        return jsonify({'error': 'Stability must be between 0.0 and 1.0'}), 400
+    
+
 
     client = ElevenLabs(api_key=os.getenv('ELEVENLABS_API_KEY'))
     try:
         # Generate audio (returns a generator)
+        # Note: ElevenLabs multilingual model automatically detects language
         audio_generator = client.text_to_speech.convert(
             text=text,
             voice_id=voice_id,
-            model_id=model_id,
+            model_id='eleven_multilingual_v2',
             voice_settings={
                 'stability': stability,
-                'similarity_boost': similarity,
+                'similarity_boost': 0.75,
                 'style': 0.0,
-                'speed': speed
+                'speed': 1.0
             },
             output_format='mp3_44100_128'
         )
@@ -190,6 +228,7 @@ def text_to_speech_direct():
 
 
 
+#---------------------------STT-----------------------------------------------
 @bp.route('/stt', methods=['POST'])
 @jwt_required()
 def speech_to_text():
@@ -209,6 +248,28 @@ def speech_to_text():
     allowed_extensions = {'wav', 'mp3', 'm4a'}
     if not '.' in audio_file.filename or audio_file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
         return jsonify({'error': 'Invalid file format. Use WAV, MP3, or M4A'}), 400
+    
+
+    stt_prefs = user.stt_preferences
+    if not stt_prefs:
+        return jsonify({'error': 'STT preferences not found for user'}), 404
+
+    language =  stt_prefs.language
+    smart_format = stt_prefs.smart_format
+    profanity_filter = stt_prefs.profanity_filter
+
+    # Choose appropriate model based on language
+    if language == 'ar':
+        # Arabic requires whisper model
+        model = 'whisper-medium'
+        valid_languages = ['en', 'es', 'fr', 'de', 'ar', 'it']
+    else:
+        # Other languages can use nova-2
+        model = 'nova-2'
+        valid_languages = ['en', 'es', 'fr', 'de', 'it']
+    
+    if language not in valid_languages:
+        return jsonify({'error': f'Invalid language. Valid languages: {", ".join(valid_languages)}'}), 400
 
     try:
         # Save audio temporarily
@@ -227,9 +288,10 @@ def speech_to_text():
             audio_data = audio.read()
         source = {'buffer': audio_data, 'mimetype': f'audio/{audio_filename.rsplit(".", 1)[1].lower()}'}
         options = PrerecordedOptions(
-            model='nova-2',
-            language=request.form.get('language', 'en'),
-            smart_format=True,
+            model=model,  # Use dynamic model based on language
+            language=language,
+            smart_format=smart_format,
+            profanity_filter=profanity_filter
         )
         response = deepgram.listen.prerecorded.v("1").transcribe_file(source, options)
         print('Deepgram response:', response)  # Add this line
@@ -253,9 +315,87 @@ def speech_to_text():
             except OSError as cleanup_error:
                 print(f"Failed to clean up file: {cleanup_error}")
         return jsonify({'error': f'Failed to transcribe audio: {str(e)}'}), 500
+    
+
+
+#---------------------------UPDATE PREFERENCES-----------------------------------
+@bp.route('/update-preferences', methods=['PUT'])
+@jwt_required()
+def update_preferences():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No preferences provided'}), 400
+
+    voice_map = {
+        'male': 'pNInz6obpgDQGcFmaJgB',
+        'female': '21m00Tcm4TlvDq8ikWAM',
+    }
+
+    if 'tts' in data:
+        tts = data['tts']
+        tts_prefs = user.tts_preferences
+        if not tts_prefs:
+            tts_prefs = TTSPreferences(user_id=user.id)
+            db.session.add(tts_prefs)
+
+        if tts.get('voice_id') not in ["male", "female"]:
+            return jsonify({'error': 'Invalid voice_id. Valid options male, female'}), 400
+        
+
+        voice_id = tts.get('voice_id', tts_prefs.voice_id)
+        tts_prefs.voice_id = voice_map.get(voice_id, voice_id) if voice_id in voice_map else tts_prefs.voice_id
+        tts_prefs.stability = tts.get('stability', tts_prefs.stability)
+        tts_prefs.updated_at = datetime.utcnow()
+
+        if tts_prefs.voice_id not in voice_map.values():
+            return jsonify({'error': f'Invalid voice_id. Valid options: male, female, neutral'}), 400
+        if tts_prefs.stability < 0.0 or tts_prefs.stability > 1.0:
+            return jsonify({'error': 'TTS stability must be between 0.0 and 1.0'}), 400
+
+    if 'stt' in data:
+        stt = data['stt']
+        stt_prefs = user.stt_preferences
+        if not stt_prefs:
+            stt_prefs = STTPreferences(user_id=user.id)
+            db.session.add(stt_prefs)
+
+        valid_languages = ['en', 'ar', 'es', 'fr', 'de', 'it']
+    
+        if stt.get('language') not in valid_languages:
+            return jsonify({'error': f'Invalid language. Valid languages: {", ".join(valid_languages)}'}), 400
+
+        stt_prefs.language = stt.get('language', stt_prefs.language)
+        stt_prefs.smart_format = stt.get('smart_format', stt_prefs.smart_format)
+        stt_prefs.profanity_filter = stt.get('profanity_filter', stt_prefs.profanity_filter)
+        stt_prefs.updated_at = datetime.utcnow()
+
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Preferences updated successfully',
+            'tts_preferences': {
+                'voice_id': user.tts_preferences.voice_id,
+                'stability': user.tts_preferences.stability
+            } if user.tts_preferences else {},
+            'stt_preferences': {
+                'language': user.stt_preferences.language,
+                'smart_format': user.stt_preferences.smart_format,
+                'profanity_filter': user.stt_preferences.profanity_filter
+            } if user.stt_preferences else {}
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update preferences: {str(e)}'}), 500
 
 
 
+#---------------------------UPDATE PROFILE-----------------------------------
 @bp.route('/update-profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
@@ -357,6 +497,8 @@ def update_profile():
         db.session.rollback()
         return jsonify({'error': f'Failed to update profile: {str(e)}'}), 500
     
+
+#---------------------------CHANGE PASSWORD-----------------------------------
 @bp.route('/change-password', methods=['PUT'])
 @jwt_required()
 def change_password():
