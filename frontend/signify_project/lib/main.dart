@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:signify_project/features/HomeScreen/home.dart';
+import 'package:signify_project/features/Settings/settingsUI.dart';
 import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding1.dart';
 
 import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding2.dart';
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => ViewProfileScreen(),
         '/edit_profile': (context) => EditProfileScreen(),
         '/changePassword': (context) => ChangePasswordScreen(),
+        '/settings' : (context) => SettingsScreen(),
       },
     );
   }
