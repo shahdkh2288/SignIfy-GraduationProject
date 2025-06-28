@@ -98,6 +98,7 @@ flutter:
   - assets/images/b_calendar.png
   - assets/images/b_setting.png
   - assets/images/delete.png
+  - assets/images/change-pass.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -10,6 +10,7 @@ import 'package:signify_project/features/authentication/createNewPass.dart';
 import 'package:signify_project/features/authentication/forgotPassword.dart';
 import 'package:signify_project/features/authentication/login.dart';
 import 'package:signify_project/features/authentication/signup.dart';
+import 'package:signify_project/features/userProfile/changePassword.dart';
 import 'package:signify_project/features/userProfile/updateProfileUI.dart';
 import 'features/Splash and Onboarding Screens/Splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,6 +49,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomeScreen(),
         '/profile': (context) => ViewProfileScreen(),
         '/edit_profile': (context) => EditProfileScreen(),
+        '/changePassword': (context) => ChangePasswordScreen(),
       },
     );
   }
