@@ -264,9 +264,12 @@ def update_profile():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    # Get form data if files are included, otherwise get JSON data
-    data = request.form if request.files else request.json
-    
+    # Accept both multipart/form-data and JSON
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        data = request.form
+    else:
+        data = request.get_json()
+
     # Check if any data was provided (either form fields or files)
     if (not data or len(data) == 0) and len(request.files) == 0:
         return jsonify({'error': 'No data provided to update profile'}), 400
@@ -387,4 +390,3 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to change password: {str(e)}'}), 500
-    

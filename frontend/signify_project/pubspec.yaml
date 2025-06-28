@@ -42,6 +42,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   path_provider: ^2.1.1
   record: ^6.0.0
+  image_picker: ^1.1.2
   
 
 dev_dependencies:
@@ -96,6 +97,7 @@ flutter:
   - assets/images/b_email.png
   - assets/images/b_calendar.png
   - assets/images/b_setting.png
+  - assets/images/delete.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
