@@ -225,6 +225,33 @@ def text_to_speech_direct():
         )
     except Exception as e:
         return jsonify({'error': f'Failed to generate audio: {str(e)}'}), 500
+    
+
+#--------------------------GET TTS PREFERENCES--------------------------------
+@bp.route('/get-tts-preferences', methods=['GET'])
+@jwt_required()
+def get_tts_preferences():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    tts_prefs = user.tts_preferences
+    if not tts_prefs:
+        return jsonify({'error': 'TTS preferences not found for user'}), 404
+    
+    if tts_prefs.voice_id == "pNInz6obpgDQGcFmaJgB":
+        voice_type= "male"
+    elif tts_prefs.voice_id == "21m00Tcm4TlvDq8ikWAM":
+        voice_type= "female"
+    else:
+        return jsonify({'error': 'Invalid voice_id'}), 400
+
+    
+    return jsonify({
+        'voice_id': voice_type,
+        'stability': tts_prefs.stability
+    }), 200
 
 
 
@@ -318,6 +345,27 @@ def speech_to_text():
     
 
 
+#---------------------------GET STT PREFERENCES-----------------------------------
+@bp.route('/get-stt-preferences', methods=['GET'])
+@jwt_required()
+def get_stt_preferences():
+    user_id = get_jwt_identity()
+    user = User.query.get(int(user_id))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    stt_prefs= user.stt_preferences
+    if not stt_prefs:
+        return jsonify({'error': 'STT preferences not found for user'}), 404
+    
+    return jsonify({
+        'language': stt_prefs.language,
+        'smart_format': stt_prefs.smart_format,
+        'profanity_filter': stt_prefs.profanity_filter
+    }), 200
+    
+
+
 #---------------------------UPDATE PREFERENCES-----------------------------------
 @bp.route('/update-preferences', methods=['PUT'])
 @jwt_required()
@@ -353,7 +401,7 @@ def update_preferences():
         tts_prefs.updated_at = datetime.utcnow()
 
         if tts_prefs.voice_id not in voice_map.values():
-            return jsonify({'error': f'Invalid voice_id. Valid options: male, female, neutral'}), 400
+            return jsonify({'error': f'Invalid voice_id. Valid options: male, female'}), 400
         if tts_prefs.stability < 0.0 or tts_prefs.stability > 1.0:
             return jsonify({'error': 'TTS stability must be between 0.0 and 1.0'}), 400
 
@@ -377,10 +425,17 @@ def update_preferences():
 
     try:
         db.session.commit()
+        
+        # Determine voice type based on voice_id
+        if user.tts_preferences and user.tts_preferences.voice_id == "pNInz6obpgDQGcFmaJgB":
+            voice_type = "male"
+        elif user.tts_preferences and user.tts_preferences.voice_id == "21m00Tcm4TlvDq8ikWAM":
+            voice_type = "female"
+        
         return jsonify({
             'message': 'Preferences updated successfully',
             'tts_preferences': {
-                'voice_id': user.tts_preferences.voice_id,
+                'voice_id': voice_type,
                 'stability': user.tts_preferences.stability
             } if user.tts_preferences else {},
             'stt_preferences': {
