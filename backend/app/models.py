@@ -65,5 +65,10 @@ class OTP(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.utcnow() + timedelta(minutes=10))
 
+    #composite index for email and otp
+    # This index will speed up queries that filter by both email and otp
+    __table_args__ = (db.Index('ix_otp_email_otp', 'email', 'otp'),)
+
+
     def __repr__(self):
         return f'<OTP {self.email}>'
