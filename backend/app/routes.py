@@ -401,7 +401,7 @@ def update_preferences():
         tts_prefs.updated_at = datetime.utcnow()
 
         if tts_prefs.voice_id not in voice_map.values():
-            return jsonify({'error': f'Invalid voice_id. Valid options: male, female, neutral'}), 400
+            return jsonify({'error': f'Invalid voice_id. Valid options: male, female'}), 400
         if tts_prefs.stability < 0.0 or tts_prefs.stability > 1.0:
             return jsonify({'error': 'TTS stability must be between 0.0 and 1.0'}), 400
 
@@ -425,10 +425,17 @@ def update_preferences():
 
     try:
         db.session.commit()
+        
+        # Determine voice type based on voice_id
+        if user.tts_preferences and user.tts_preferences.voice_id == "pNInz6obpgDQGcFmaJgB":
+            voice_type = "male"
+        elif user.tts_preferences and user.tts_preferences.voice_id == "21m00Tcm4TlvDq8ikWAM":
+            voice_type = "female"
+        
         return jsonify({
             'message': 'Preferences updated successfully',
             'tts_preferences': {
-                'voice_id': user.tts_preferences.voice_id,
+                'voice_id': voice_type,
                 'stability': user.tts_preferences.stability
             } if user.tts_preferences else {},
             'stt_preferences': {
