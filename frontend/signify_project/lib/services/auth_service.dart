@@ -114,4 +114,95 @@ class AuthService {
       'Content-Type': 'application/json',
     };
   }
+
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final body = {'email': email.trim()};
+      final response = await http.post(
+        Uri.parse('$baseUrl/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': true,
+          'message': jsonResponse['message'] ?? 'OTP sent to email',
+        };
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': false,
+          'message': jsonResponse['error'] ?? 'Failed to send OTP',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final body = {'email': email.trim(), 'otp': otp.trim()};
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': true,
+          'message': jsonResponse['message'] ?? 'OTP verified successfully',
+          'reset_token': jsonResponse['reset_token'],
+        };
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': false,
+          'message': jsonResponse['error'] ?? 'Failed to verify OTP',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPasswordWithToken({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    try {
+      final body = {
+        'reset_token': resetToken.trim(),
+        'new_password': newPassword.trim(),
+      };
+      final response = await http.post(
+        Uri.parse('$baseUrl/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': true,
+          'message': jsonResponse['message'] ?? 'Password reset successful',
+        };
+      } else {
+        final jsonResponse = json.decode(response.body);
+        return {
+          'success': false,
+          'message': jsonResponse['error'] ?? 'Failed to reset password',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
 }
