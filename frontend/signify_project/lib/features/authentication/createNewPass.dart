@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 
 class createNewPassword extends StatefulWidget {
   const createNewPassword({super.key});
@@ -9,12 +10,29 @@ class createNewPassword extends StatefulWidget {
 
 class _createNewPasswordState extends State<createNewPassword> {
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final AuthService _authService = AuthService();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
+  String? resetToken;
 
-  final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$');
+  final passwordRegex = RegExp(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // Get reset token from route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is Map<String, dynamic>) {
+        resetToken = args['reset_token'];
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -89,7 +107,7 @@ class _createNewPasswordState extends State<createNewPassword> {
                   prefixIcon: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Image.asset(
-                      'assets/images/passIcon.png', 
+                      'assets/images/passIcon.png',
                       height: 20,
                       width: 20,
                       fit: BoxFit.contain,
@@ -97,8 +115,10 @@ class _createNewPasswordState extends State<createNewPassword> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                      color: Colors.grey, 
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.grey,
                     ),
                     onPressed: () {
                       setState(() {
@@ -115,14 +135,12 @@ class _createNewPasswordState extends State<createNewPassword> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                ),
+                style: TextStyle(fontFamily: 'LeagueSpartan'),
                 onChanged: (_) {
-                  setState(() {}); 
+                  setState(() {});
                 },
               ),
-              
+
               SizedBox(height: 45),
               Text(
                 'Confirm New Password',
@@ -150,8 +168,10 @@ class _createNewPasswordState extends State<createNewPassword> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                      color: Colors.grey, 
+                      _isConfirmPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.grey,
                     ),
                     onPressed: () {
                       setState(() {
@@ -168,9 +188,7 @@ class _createNewPasswordState extends State<createNewPassword> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                ),
+                style: TextStyle(fontFamily: 'LeagueSpartan'),
               ),
               SizedBox(height: 90),
               SizedBox(
@@ -188,67 +206,116 @@ class _createNewPasswordState extends State<createNewPassword> {
                       fontSize: 18,
                     ),
                   ),
-                  onPressed: _isLoading
-                      ? null
-                      : () async {
-                          if (_passwordController.text.isEmpty ||
-                              _confirmPasswordController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Please fill in both fields.'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                          if (!passwordRegex.hasMatch(_passwordController.text)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Password must be at least 8 characters,\ninclude upper, lower, number & special char.',
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () async {
+                            if (_passwordController.text.isEmpty ||
+                                _confirmPasswordController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Please fill in both fields.'),
+                                  backgroundColor: Colors.red,
                                 ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                          if (_passwordController.text != _confirmPasswordController.text) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Passwords do not match.'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          await Future.delayed(Duration(seconds: 2));
-                          setState(() {
-                            _isLoading = false;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Password reset successful! Please log in with your new password.'),
-                              backgroundColor: Colors.green,
+                              );
+                              return;
+                            }
+                            if (!passwordRegex.hasMatch(
+                              _passwordController.text,
+                            )) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Password must be at least 8 characters,\ninclude upper, lower, number & special char.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            if (_passwordController.text !=
+                                _confirmPasswordController.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Passwords do not match.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (resetToken == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Missing verification data. Please try again.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              _isLoading = true;
+                            });
+
+                            try {
+                              final result = await _authService
+                                  .resetPasswordWithToken(
+                                    resetToken: resetToken!,
+                                    newPassword: _passwordController.text,
+                                  );
+
+                              setState(() {
+                                _isLoading = false;
+                              });
+
+                              if (result['success']) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result['message']),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                await Future.delayed(Duration(seconds: 1));
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  '/login',
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result['message']),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setState(() {
+                                _isLoading = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'An error occurred. Please try again.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                  child:
+                      _isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                            'Reset Password',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'LeagueSpartan',
+                              fontWeight: FontWeight.bold,
                             ),
-                          );
-                          await Future.delayed(Duration(seconds: 1));
-                          Navigator.pushReplacementNamed(context, '/login');
-                        },
-                  child: _isLoading
-                      ? CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                      : Text(
-                          'Reset Password',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: 'LeagueSpartan',
-                            fontWeight: FontWeight.bold,
                           ),
-                        ),
                 ),
               ),
             ],

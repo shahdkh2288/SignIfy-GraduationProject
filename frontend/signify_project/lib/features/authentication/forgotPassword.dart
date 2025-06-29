@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -10,6 +11,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
+  final AuthService _authService = AuthService();
   bool _isLoading = false;
 
   @override
@@ -28,12 +30,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               SizedBox(height: 8),
               IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Image.asset(
-                    'assets/images/back.png',
-                    height: 50,
-                    width: 50,
-                  )),
+                onPressed: () => Navigator.pop(context),
+                icon: Image.asset(
+                  'assets/images/back.png',
+                  height: 50,
+                  width: 50,
+                ),
+              ),
               SizedBox(height: 20),
               Center(
                 child: Text(
@@ -47,7 +50,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               SizedBox(height: 12),
-              
+
               Center(
                 child: Text(
                   'No worries! Enter your email address below and we will\nsend you a code to reset password.',
@@ -60,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               SizedBox(height: 32),
-              
+
               Text(
                 'E-mail',
                 style: TextStyle(
@@ -71,7 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               SizedBox(height: 25),
-              
+
               Form(
                 key: _formKey,
                 child: TextFormField(
@@ -100,21 +103,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF005FCE), width: 2),
+                      borderSide: BorderSide(
+                        color: Color(0xFF005FCE),
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF005FCE), width: 2),
+                      borderSide: BorderSide(
+                        color: Color(0xFF005FCE),
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                  ),
+                  style: TextStyle(fontFamily: 'LeagueSpartan'),
                 ),
               ),
               SizedBox(height: 55),
-              
+
               SizedBox(
                 width: double.infinity,
                 height: 45,
@@ -130,40 +137,74 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       fontSize: 18,
                     ),
                   ),
-                  onPressed: _isLoading
-                      ? null
-                      : () async {
-                          if (_formKey.currentState!.validate()) {
-                            setState(() {
-                              _isLoading = true;
-                            });
-                            await Future.delayed(Duration(seconds: 2));
-                            setState(() {
-                              _isLoading = false;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Reset instructions sent to your email!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                       
-                            await Future.delayed(Duration(milliseconds: 5000));
-                            Navigator.pushNamed(context, '/verifyAccount');
-                          }
-                        },
-                  child: _isLoading
-                      ? CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                      : Text(
-                          'Send Reset Instructions',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: 'LeagueSpartan',
-                            fontWeight: FontWeight.bold,
+                  onPressed:
+                      _isLoading
+                          ? null
+                          : () async {
+                            if (_formKey.currentState!.validate()) {
+                              setState(() {
+                                _isLoading = true;
+                              });
+
+                              try {
+                                final result = await _authService
+                                    .forgotPassword(_emailController.text);
+
+                                setState(() {
+                                  _isLoading = false;
+                                });
+
+                                if (result['success']) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message']),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+
+                                  // Navigate to verify account screen and pass the email
+                                  await Future.delayed(
+                                    Duration(milliseconds: 1000),
+                                  );
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/verifyAccount',
+                                    arguments: _emailController.text,
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message']),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                setState(() {
+                                  _isLoading = false;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'An error occurred. Please try again.',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                  child:
+                      _isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                            'Send Reset Instructions',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'LeagueSpartan',
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
                 ),
               ),
             ],

@@ -1,18 +1,22 @@
-from datetime import datetime
-from flask import request, jsonify, current_app, Response
+from datetime import datetime, timedelta
+from flask import request, jsonify, current_app, Response, Blueprint
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from .models import db, User, TTSPreferences, STTPreferences
-from flask import Blueprint
+from .models import db, User, TTSPreferences, STTPreferences, OTP
 import bcrypt
 from elevenlabs import ElevenLabs
 from deepgram import DeepgramClient, PrerecordedOptions
 import os
 import time
+import glob
+import smtplib
+import random
+import string
+from email.mime.text import MIMEText
 
 bp = Blueprint('main', __name__)
 
 
-#-------------------------SIGN UP------------------------------------------------
+#----------------------------SIGN UP------------------------------------------------
 @bp.route('/signup', methods=['POST'])
 def signup():
     data = request.json
@@ -587,3 +591,140 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to change password: {str(e)}'}), 500
+    
+
+#---------------------------FORGOT PASSWORD-----------------------------------
+def send_otp_email(email, otp):
+    try:
+        sender = os.getenv('GMAIL_ADDRESS')
+        password = os.getenv('GMAIL_APP_PASSWORD')
+        msg = MIMEText(f'Your SignIfy password reset OTP is: {otp}. It expires in 10 minutes.')
+        msg['Subject'] = 'SignIfy Password Reset OTP'
+        msg['From'] = sender
+        msg['To'] = email
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender, password)
+            server.sendmail(sender, email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"Failed to send OTP email: {str(e)}")
+        return False
+
+
+
+
+@bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.json
+    email = data.get('email')
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'error': 'Email not found'}), 404
+
+    # Generate 6-digit OTP
+    otp = ''.join(random.choices(string.digits, k=6))
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+
+    # Delete old OTPs for this email
+    OTP.query.filter_by(email=email).delete()
+
+    # Store new OTP
+    new_otp = OTP(email=email, otp=otp, expires_at=expires_at)
+    db.session.add(new_otp)
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to store OTP: {str(e)}'}), 500
+
+    # Send OTP email
+    if not send_otp_email(email, otp):
+        return jsonify({'error': 'Failed to send OTP email'}), 500
+
+    return jsonify({'message': 'OTP sent to email'}), 200
+
+
+#---------------------------VERIFY OTP-----------------------------------
+@bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.json
+    email = data.get('email')
+    otp = data.get('otp')
+
+    if not all([email, otp]):
+        return jsonify({'error': 'Email and OTP are required'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'error': 'Email not found'}), 404
+
+    otp_record = OTP.query.filter_by(email=email, otp=otp).first()
+    if not otp_record:
+        return jsonify({'error': 'Invalid OTP'}), 400
+
+    if otp_record.expires_at < datetime.utcnow():
+        OTP.query.filter_by(email=email).delete()
+        db.session.commit()
+        return jsonify({'error': 'OTP has expired'}), 400
+
+    # Generate a short-lived reset token (5 minutes)
+    reset_token = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+    
+    # Update the OTP record to store the reset token and shorter expiry
+    otp_record.otp = reset_token  # Reuse otp field for reset token
+    otp_record.expires_at = datetime.utcnow() + timedelta(minutes=5)  # 5 minute window for password reset
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'OTP verified successfully',
+            'reset_token': reset_token
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to verify OTP: {str(e)}'}), 500
+
+
+#---------------------------RESET PASSWORD-----------------------------------
+@bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    reset_token = data.get('reset_token')
+    new_password = data.get('new_password')
+
+    if not all([reset_token, new_password]):
+        return jsonify({'error': 'Reset token and new password are required'}), 400
+
+    # Find the OTP record with the reset token
+    token_record = OTP.query.filter_by(otp=reset_token).first()
+    if not token_record:
+        return jsonify({'error': 'Invalid or expired reset token'}), 400
+
+    if token_record.expires_at < datetime.utcnow():
+        OTP.query.filter_by(otp=reset_token).delete()
+        db.session.commit()
+        return jsonify({'error': 'Reset token has expired'}), 400
+
+    # Find user by email
+    user = User.query.filter_by(email=token_record.email).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Update password
+    new_password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    user.password = new_password_hash
+    user.updated_at = datetime.utcnow()
+
+    # Delete used reset token
+    OTP.query.filter_by(otp=reset_token).delete()
+
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Password reset successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to reset password: {str(e)}'}), 500
