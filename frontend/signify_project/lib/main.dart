@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signify_project/features/HomeScreen/home.dart';
 import 'package:signify_project/features/Settings/settingsUI.dart';
+import 'package:signify_project/features/Settings/stt-settings.dart';
 import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding1.dart';
 
 import 'package:signify_project/features/Splash%20and%20Onboarding%20Screens/onboarding2.dart';
@@ -16,6 +17,7 @@ import 'package:signify_project/features/userProfile/updateProfileUI.dart';
 import 'features/Splash and Onboarding Screens/Splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signify_project/features/userProfile/viewProfile.dart'; 
+import 'package:signify_project/features/Settings/tts-settings.dart';
 
 
 void main() {
@@ -52,6 +54,8 @@ class MyApp extends StatelessWidget {
         '/edit_profile': (context) => EditProfileScreen(),
         '/changePassword': (context) => ChangePasswordScreen(),
         '/settings' : (context) => SettingsScreen(),
+        '/tts-settings': (context) => TTSSettingsScreen(),
+        '/stt-settings': (context) => STTSettingsScreen(),
       },
     );
   }
