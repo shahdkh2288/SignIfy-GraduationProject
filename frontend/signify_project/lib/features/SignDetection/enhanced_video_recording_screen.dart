@@ -184,9 +184,26 @@ class _EnhancedVideoRecordingScreenState
       final videoBytes = await videoFile.readAsBytes();
       final result = await _signDetectionService.detectMultipleSigns(
         videoBytes,
+        debug: true,
       );
 
       if (result != null) {
+        // Print debug information for multiple signs detection
+        print('=== FLUTTER MULTIPLE SIGNS DEBUG INFO ===');
+        if (result['words'] != null) {
+          print('Detected words: ${result['words']}');
+          print('Sentence: ${result['sentence']}');
+          print('Segments count: ${result['segments']?.length ?? 0}');
+        } else if (result['word'] != null) {
+          print('Single word detected: ${result['word']}');
+          print('Confidence: ${result['confidence']}');
+        }
+
+        if (result['debug_info'] != null) {
+          final debugInfo = result['debug_info'];
+          print('Debug info available: ${debugInfo.runtimeType}');
+        }
+        print('=== END MULTIPLE SIGNS DEBUG INFO ===');
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
@@ -231,9 +248,22 @@ class _EnhancedVideoRecordingScreenState
       ref.read(isProcessingProvider.notifier).state = true;
 
       final videoBytes = await videoFile.readAsBytes();
-      final result = await _signDetectionService.detectVideoSigns(videoBytes);
+      final result = await _signDetectionService.detectVideoSigns(
+        videoBytes,
+        debug: true,
+      );
 
       if (result != null && result['word'] != null) {
+        // Print debug information for segment
+        print('=== FLUTTER SEGMENT DEBUG INFO ===');
+        print('Segment word detected: ${result['word']}');
+        print('Confidence: ${result['confidence']}');
+        if (result['debug_info'] != null) {
+          final debugInfo = result['debug_info'] as List;
+          print('Debug frames count: ${debugInfo.length}');
+        }
+        print('=== END SEGMENT DEBUG INFO ===');
+
         final currentWords = ref.read(detectedWordsProvider);
         final newWords = <String>[...currentWords, result['word']];
         ref.read(detectedWordsProvider.notifier).state = newWords;
