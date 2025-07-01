@@ -18,6 +18,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   bool newObscure = true;
   bool confirmObscure = true;
 
+  
+  final passwordRegex = RegExp(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$',
+  );
+
   @override
   void dispose() {
     oldPassController.dispose();
@@ -97,6 +102,13 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         obscureText: newObscure,
                         onToggle: () => setState(() => newObscure = !newObscure),
                         hintText: 'New Password',
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Required';
+                          if (!passwordRegex.hasMatch(v)) {
+                            return 'Password must be at least 8 characters,\ninclude upper, lower, number, and special character.';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 18),
                       const Text(
@@ -114,6 +126,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         obscureText: confirmObscure,
                         onToggle: () => setState(() => confirmObscure = !confirmObscure),
                         hintText: 'Confirm New Password',
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Required';
+                          if (v != newPassController.text) return 'Passwords do not match';
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 32),
                       changePasswordState.when(
@@ -255,12 +272,14 @@ class _PasswordField extends StatelessWidget {
   final bool obscureText;
   final VoidCallback onToggle;
   final String hintText;
+  final FormFieldValidator<String>? validator;
 
   const _PasswordField({
     required this.controller,
     required this.obscureText,
     required this.onToggle,
     required this.hintText,
+    this.validator,
   });
 
   @override
@@ -268,7 +287,7 @@ class _PasswordField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+      validator: validator ?? (v) => v == null || v.isEmpty ? 'Required' : null,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color.fromRGBO(114, 196, 244, 0.28), 
