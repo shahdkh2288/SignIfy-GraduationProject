@@ -12,6 +12,24 @@ class TTSSettingsScreen extends ConsumerStatefulWidget {
 class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
   String _selectedVoiceId = 'female';
   double _stability = 0.5; 
+  bool _showSuccess = false; 
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final notifier = ref.read(ttsSettingsProvider.notifier);
+    final prefs = await notifier.fetchTTSPreferences();
+    if (prefs != null) {
+      setState(() {
+        _selectedVoiceId = prefs['voice_id'] ?? 'female';
+        _stability = (prefs['stability'] ?? 0.5).toDouble().clamp(0.0, 1.0);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +47,7 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
               const SizedBox(height: 24),
               IconButton(
                 alignment: Alignment.centerLeft,
-                padding: EdgeInsets.zero, // No extra padding
+                padding: EdgeInsets.zero, 
                 onPressed: () => Navigator.pop(context),
                 icon: Image.asset('assets/images/back.png', height: 36, width: 36),
               ),
@@ -101,14 +119,53 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 80),
-              const Text(
-                'Stability',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 33,
-                  color: Color(0xFF005FCE),
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Stability',
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 33,
+                      color: Color(0xFF005FCE),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text(
+                            'What is Stability?',
+                            style: TextStyle(
+                              fontFamily: 'LeagueSpartan',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 22,
+                              color: Color(0xFF005FCE),
+                            ),
+                          ),
+                          content: const Text(
+                            'Stability controls how consistent the voice sounds. '
+                            'A higher value means the voice will sound more stable and less expressive. '
+                            'A lower value allows for more variation and expressiveness in the speech.',
+                            style: TextStyle(
+                              fontFamily: 'LeagueSpartan',
+                              fontSize: 18,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.info_outline, color: Color(0xFF005FCE), size: 28),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Row(
@@ -127,7 +184,7 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
                         min: 0.0,
                         max: 1.0,
                         divisions: 20,
-                        label: "${_stability.toStringAsFixed(2)}",
+                        label: _stability.toStringAsFixed(2),
                         onChanged: (value) {
                           setState(() {
                             _stability = value;
@@ -141,7 +198,7 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
               ),
               Center(
                 child: Text(
-                  "${_stability.toStringAsFixed(2)}",
+                  _stability.toStringAsFixed(2),
                   style: const TextStyle(
                     fontFamily: 'LeagueSpartan',
                     fontWeight: FontWeight.bold,
@@ -151,18 +208,20 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              if (_showSuccess)
+                Center(
+                  child: Text(
+                    'Preferences updated successfully!',
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ttsState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text(
                   e.toString(),
                   style: const TextStyle(color: Colors.red),
                 ),
-                data: (data) => data['message'] != null
-                    ? Text(
-                        data['message'],
-                        style: const TextStyle(color: Colors.green),
-                      )
-                    : const SizedBox.shrink(),
+                data: (data) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 70), 
               Row(
@@ -174,11 +233,15 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
                     child: ElevatedButton(
                       onPressed: ttsState.isLoading
                           ? null
-                          : () {
-                              ref.read(ttsSettingsProvider.notifier).updateTTSSettings(
-                                    selectedVoiceId: _selectedVoiceId,
-                                    stability: _stability,
-                                  );
+                          : () async {
+                              await ref.read(ttsSettingsProvider.notifier).updateTTSSettings(
+                                selectedVoiceId: _selectedVoiceId,
+                                stability: _stability,
+                              );
+                              setState(() {
+                                _showSuccess = true; 
+                              });
+                              await _loadPreferences(); 
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF005FCE),

@@ -174,8 +174,8 @@ class ViewProfileScreen extends ConsumerWidget {
                       imagePath: 'assets/images/b_email.png',
                       label: 'Email',
                       value: user.email,
-                      imageWidth: 72,
-                      imageHeight: 72,
+                      imageWidth: 45,
+                      imageHeight: 60,
                     ),
                     const SizedBox(height: 18),
                     _ProfileRow(
@@ -294,28 +294,36 @@ class _ProfileRow extends StatelessWidget {
         children: [
           Image.asset(imagePath, width: imageWidth, height: imageHeight),
           const SizedBox(width: 16),
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-              fontFamily: 'LeagueSpartan',
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: value.isNotEmpty
-                ? Text(
-                    value,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 20,
-                      fontFamily: 'LeagueSpartan',
-                    ),
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                : const SizedBox.shrink(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    fontFamily: 'LeagueSpartan',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: value.isNotEmpty
+                      ? Text(
+                          value,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.normal,
+                            fontSize: 20,
+                            fontFamily: 'LeagueSpartan',
+                            color: Color(0xFF3B8EDB),
+                          ),
+                          textAlign: TextAlign.right,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
           ),
           if (trailing != null) ...[
             const SizedBox(width: 12),
