@@ -137,14 +137,51 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Smart Format',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 33,
-                      color: Color(0xFF005FCE),
-                    ),
+                  Row(
+                    children: [
+                      const Text(
+                        'Smart Format',
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 33,
+                          color: Color(0xFF005FCE),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text(
+                                'What is Smart Format?',
+                                style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                  color: Color(0xFF005FCE),
+                                ),
+                              ),
+                              content: const Text(
+                                'Smart Format automatically adds punctuation and capitalization to your transcribed speech.',
+                                style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
+                                  fontSize: 18,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: const Icon(Icons.info_outline, color: Color(0xFF005FCE), size: 26),
+                      ),
+                    ],
                   ),
                   Switch(
                     value: _smartFormat,
@@ -164,14 +201,51 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Profanity Filter',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 33,
-                      color: Color(0xFF005FCE),
-                    ),
+                  Row(
+                    children: [
+                      const Text(
+                        'Profanity Filter',
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 33,
+                          color: Color(0xFF005FCE),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text(
+                                'What is Profanity Filter?',
+                                style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                  color: Color(0xFF005FCE),
+                                ),
+                              ),
+                              content: const Text(
+                                'Profanity Filter censors or removes inappropriate language from your transcribed speech.',
+                                style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
+                                  fontSize: 18,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: const Icon(Icons.info_outline, color: Color(0xFF005FCE), size: 26),
+                      ),
+                    ],
                   ),
                   Switch(
                     value: _profanityFilter,
