@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask import request, jsonify, current_app, Response, Blueprint
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from .models import db, User, TTSPreferences, STTPreferences, OTP
+from .models import db, User, TTSPreferences, STTPreferences, OTP, Feedback
 import bcrypt
 from elevenlabs import ElevenLabs
 from deepgram import DeepgramClient, PrerecordedOptions
@@ -728,3 +728,100 @@ def reset_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to reset password: {str(e)}'}), 500
+
+
+#----------------------------FEEDBACK ROUTES------------------------------------------------
+@bp.route('/submit-feedback', methods=['POST'])
+@jwt_required()
+def submit_feedback():
+    """Submit user feedback with star rating and optional text"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.json
+
+        stars = data.get('stars')
+        feedback_text = data.get('feedback_text', '').strip()
+
+        # Validation
+        if not stars or not isinstance(stars, int):
+            return jsonify({'error': 'Stars rating is required and must be an integer'}), 400
+
+        if stars < 1 or stars > 5:
+            return jsonify({'error': 'Stars rating must be between 1 and 5'}), 400
+
+        if len(feedback_text) > 1000:
+            return jsonify({'error': 'Feedback text cannot exceed 1000 characters'}), 400
+
+        # Create new feedback
+        new_feedback = Feedback(
+            user_id=current_user_id,
+            stars=stars,
+            feedback_text=feedback_text if feedback_text else None
+        )
+
+        db.session.add(new_feedback)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Feedback submitted successfully',
+            'feedback_id': new_feedback.id,
+            'stars': new_feedback.stars
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to submit feedback: {str(e)}'}), 500
+
+
+
+# Admin route to get all feedback
+@bp.route('/admin/all-feedback', methods=['GET'])
+@jwt_required()
+def get_all_feedback():
+    """Get all feedback for admin users (requires admin privileges)"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Check if user is admin
+        current_user = User.query.get(current_user_id)
+        if not current_user or not current_user.isAdmin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        min_stars = request.args.get('min_stars', type=int)
+
+        # Build query
+        query = db.session.query(Feedback, User.username)\
+                          .join(User, Feedback.user_id == User.id)
+
+        if min_stars:
+            query = query.filter(Feedback.stars >= min_stars)
+
+        # Order by most recent
+        query = query.order_by(Feedback.created_at.desc())
+
+        # Paginate
+        paginated_feedback = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        feedback_data = []
+        for feedback, username in paginated_feedback.items:
+            feedback_dict = feedback.to_dict()
+            feedback_dict['username'] = username
+            feedback_data.append(feedback_dict)
+
+        return jsonify({
+            'feedback': feedback_data,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': paginated_feedback.total,
+                'pages': paginated_feedback.pages
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve feedback: {str(e)}'}), 500
