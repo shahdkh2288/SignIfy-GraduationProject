@@ -6,7 +6,11 @@ from flask_jwt_extended import JWTManager
 from .config import Config
 from .models import db
 
+# Global migrate object
+migrate = None
+
 def create_app():
+    global migrate
     app = Flask(__name__)
     app.config.from_object(Config)
 
