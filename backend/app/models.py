@@ -22,8 +22,7 @@ class User(db.Model):
 
     tts_preferences = db.relationship('TTSPreferences', back_populates='user', uselist=False)
     stt_preferences = db.relationship('STTPreferences', back_populates='user', uselist=False)
-
-
+    feedback = db.relationship('Feedback', back_populates='user', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -56,6 +55,37 @@ class STTPreferences(db.Model):
     def __repr__(self):
         return f'<STTPreferences user_id={self.user_id}>'
     
+
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    stars = db.Column(db.Integer, nullable=False)  # Rating from 1-5
+    feedback_text = db.Column(db.Text, nullable=True)  # Optional feedback text
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='feedback')
+
+    # Constraint to ensure stars are between 1 and 5
+    __table_args__ = (
+        db.CheckConstraint('stars >= 1 AND stars <= 5', name='check_stars_range'),
+        db.Index('ix_feedback_user_id', 'user_id'),
+        db.Index('ix_feedback_created_at', 'created_at'),
+    )
+
+    def __repr__(self):
+        return f'<Feedback user_id={self.user_id} stars={self.stars}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'stars': self.stars,
+            'feedback_text': self.feedback_text,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
 
 
 class OTP(db.Model):
