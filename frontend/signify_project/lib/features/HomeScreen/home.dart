@@ -8,6 +8,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'home_providers.dart';
 import '../SignDetection/enhanced_video_recording_screen.dart';
+import '../Debug/network_test_screen.dart';
+import '../Debug/sign_detection_test_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -226,14 +228,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blue.shade100,
-                    child: const Icon(
-                      Icons.person,
-                      size: 80,
-                      color: Color(0xFF005FCE),
-                    ),
+                  Row(
+                    children: [
+                      // Debug button
+                      IconButton(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder:
+                                (context) => Container(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        'Debug Tools',
+                                        style: TextStyle(
+                                          fontFamily: 'LeagueSpartan',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ListTile(
+                                        leading: const Icon(
+                                          Icons.network_check,
+                                        ),
+                                        title: const Text('Network Test'),
+                                        subtitle: const Text(
+                                          'Test server connectivity',
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      const NetworkTestScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.gesture),
+                                        title: const Text(
+                                          'Sign Detection Test',
+                                        ),
+                                        subtitle: const Text(
+                                          'Test sign detection with dummy data',
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      const SignDetectionTestScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.bug_report,
+                          color: Color(0xFF005FCE),
+                          size: 30,
+                        ),
+                        tooltip: 'Debug Tools',
+                      ),
+                      const SizedBox(width: 8),
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.blue.shade100,
+                        child: const Icon(
+                          Icons.person,
+                          size: 80,
+                          color: Color(0xFF005FCE),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

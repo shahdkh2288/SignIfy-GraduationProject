@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/network_config.dart';
 
 class SignDetectionService {
-  static const String baseUrl = 'http://10.0.2.2:5000';
+  static const String baseUrl = NetworkConfig.baseUrl;
 
   /// Detects hand landmarks from a frame image
   /// Returns landmarks data or null if detection fails
@@ -58,7 +59,10 @@ class SignDetectionService {
 
   /// Detects signs from a video sequence
   /// For dynamic signs that require temporal context
-  Future<Map<String, dynamic>?> detectVideoSigns(List<int> videoBytes) async {
+  Future<Map<String, dynamic>?> detectVideoSigns(
+    List<int> videoBytes, {
+    bool debug = false,
+  }) async {
     try {
       var request = http.MultipartRequest(
         'POST',
@@ -71,6 +75,11 @@ class SignDetectionService {
           filename: 'video.mp4',
         ),
       );
+
+      // Add debug parameter if requested
+      if (debug) {
+        request.fields['debug'] = 'true';
+      }
 
       final response = await request.send();
       if (response.statusCode == 200) {
@@ -113,8 +122,9 @@ class SignDetectionService {
   /// Detects multiple signs from a video sequence with automatic segmentation
   /// Returns a map with individual words, complete sentence, and segment details
   Future<Map<String, dynamic>?> detectMultipleSigns(
-    List<int> videoBytes,
-  ) async {
+    List<int> videoBytes, {
+    bool debug = false,
+  }) async {
     try {
       var request = http.MultipartRequest(
         'POST',
@@ -127,6 +137,11 @@ class SignDetectionService {
           filename: 'video.mp4',
         ),
       );
+
+      // Add debug parameter if requested
+      if (debug) {
+        request.fields['debug'] = 'true';
+      }
 
       final response = await request.send();
       if (response.statusCode == 200) {

@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import '../config/network_config.dart';
 
 class STTService {
-  static const _baseUrl = 'http://10.0.2.2:5000';
+  static const _baseUrl = NetworkConfig.baseUrl;
   static final _storage = FlutterSecureStorage();
 
-  
   static Future<String?> sendAudioForTranscription(File audioFile) async {
     try {
       final token = await _storage.read(key: 'access_token');
@@ -18,9 +18,12 @@ class STTService {
 
       final url = Uri.parse('$_baseUrl/stt');
 
-      final request = http.MultipartRequest('POST', url)
-        ..headers['Authorization'] = 'Bearer $token'
-        ..files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
+      final request =
+          http.MultipartRequest('POST', url)
+            ..headers['Authorization'] = 'Bearer $token'
+            ..files.add(
+              await http.MultipartFile.fromPath('audio', audioFile.path),
+            );
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);

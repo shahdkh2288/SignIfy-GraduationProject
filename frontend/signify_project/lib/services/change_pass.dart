@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/network_config.dart';
 
-final changePasswordProvider = StateNotifierProvider<ChangePasswordNotifier, AsyncValue<String>>(
-  (ref) => ChangePasswordNotifier(),
-);
+final changePasswordProvider =
+    StateNotifierProvider<ChangePasswordNotifier, AsyncValue<String>>(
+      (ref) => ChangePasswordNotifier(),
+    );
 
 class ChangePasswordNotifier extends StateNotifier<AsyncValue<String>> {
   ChangePasswordNotifier() : super(const AsyncValue.data(''));
@@ -18,7 +20,7 @@ class ChangePasswordNotifier extends StateNotifier<AsyncValue<String>> {
     try {
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'access_token');
-      final url = Uri.parse('http://10.0.2.2:5000/change-password');
+      final url = Uri.parse('${NetworkConfig.baseUrl}/change-password');
       final response = await http.put(
         url,
         headers: {
@@ -32,9 +34,14 @@ class ChangePasswordNotifier extends StateNotifier<AsyncValue<String>> {
       );
       final json = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        state = AsyncValue.data(json['message'] ?? 'Password changed successfully');
+        state = AsyncValue.data(
+          json['message'] ?? 'Password changed successfully',
+        );
       } else {
-        state = AsyncValue.error(json['error'] ?? 'Failed to change password', StackTrace.current);
+        state = AsyncValue.error(
+          json['error'] ?? 'Failed to change password',
+          StackTrace.current,
+        );
       }
     } catch (e, st) {
       state = AsyncValue.error(e.toString(), st);

@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
+import '../config/network_config.dart';
 
 class TTSService {
-  static const _baseUrl = 'http://10.0.2.2:5000';
+  static const _baseUrl = NetworkConfig.baseUrl;
   static const _storage = FlutterSecureStorage();
 
   // Direct audio download method
