@@ -18,7 +18,7 @@ import 'features/Splash and Onboarding Screens/Splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signify_project/features/userProfile/viewProfile.dart'; 
 import 'package:signify_project/features/Settings/tts-settings.dart';
-
+import 'package:signify_project/features/feedback/feedbacks.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -56,6 +56,7 @@ class MyApp extends StatelessWidget {
         '/settings' : (context) => SettingsScreen(),
         '/tts-settings': (context) => TTSSettingsScreen(),
         '/stt-settings': (context) => STTSettingsScreen(),
+        '/feedback': (context) => FeedbackScreen(),
       },
     );
   }
