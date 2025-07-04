@@ -15,7 +15,6 @@ from email.mime.text import MIMEText
 
 bp = Blueprint('main', __name__)
 
-
 #----------------------------SIGN UP------------------------------------------------
 @bp.route('/signup', methods=['POST'])
 def signup():
@@ -825,3 +824,246 @@ def get_all_feedback():
 
     except Exception as e:
         return jsonify({'error': f'Failed to retrieve feedback: {str(e)}'}), 500
+
+
+#---------------------------ADMIN USER MANAGEMENT ROUTES-----------------------------------
+
+@bp.route('/admin/all-users', methods=['GET'])
+@jwt_required()
+def get_all_users():
+    """Get all users for admin users (requires admin privileges)"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Check if user is admin
+        current_user = User.query.get(int(current_user_id))
+        if not current_user or not current_user.isAdmin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        status_filter = request.args.get('status')  # active, inactive
+        role_filter = request.args.get('role')
+
+        # Build query
+        query = User.query
+
+        # Apply filters
+        if status_filter:
+            query = query.filter(User.status == status_filter)
+        
+        if role_filter:
+            query = query.filter(User.role == role_filter)
+
+        # Order by most recent
+        query = query.order_by(User.created_at.desc())
+
+        # Paginate
+        paginated_users = query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        users_data = []
+        for user in paginated_users.items:
+            user_dict = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'fullname': user.fullname,
+                'role': user.role,
+                'status': user.status,
+                'age': user.age,
+                'dateofbirth': user.dateofbirth.strftime('%Y-%m-%d'),
+                'profile_image': user.profile_image,
+                'isAdmin': user.isAdmin,
+                'created_at': user.created_at.isoformat(),
+                'updated_at': user.updated_at.isoformat()
+            }
+            users_data.append(user_dict)
+
+        return jsonify({
+            'users': users_data,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': paginated_users.total,
+                'pages': paginated_users.pages
+            },
+            'stats': {
+                'total_users': User.query.count(),
+                'active_users': User.query.filter_by(status='active').count(),
+                'inactive_users': User.query.filter_by(status='inactive').count(),
+                'admin_users': User.query.filter_by(isAdmin=True).count()
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve users: {str(e)}'}), 500
+
+
+@bp.route('/admin/users/<int:user_id>/active-status', methods=['PUT'])
+@jwt_required()
+def toggle_user_status(user_id):
+    """Activate or deactivate a user (requires admin privileges)"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Check if user is admin
+        current_user = User.query.get(int(current_user_id))
+        if not current_user or not current_user.isAdmin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        data = request.json
+        new_status = data.get('status')  # 'active' or 'inactive'
+
+        if not new_status:
+            return jsonify({'error': 'Status is required'}), 400
+
+        if new_status not in ['active', 'inactive']:
+            return jsonify({'error': 'Status must be either "active" or "inactive"'}), 400
+        
+
+        # Find the user to update
+        target_user = User.query.get(user_id)
+        if not target_user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if target_user.status == new_status:
+            return jsonify({'error': 'Current status is the same, there is no change in user status'}), 400
+
+        # Prevent admin from deactivating themselves
+        if target_user.id == current_user.id:
+            return jsonify({'error': 'Cannot change your own status'}), 400
+
+        # Prevent deactivating other admins (optional security measure)
+        if target_user.isAdmin and new_status == 'inactive':
+            return jsonify({'error': 'Cannot deactivate admin users'}), 400
+
+        # Update user status
+        old_status = target_user.status
+        target_user.status = new_status
+        target_user.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return jsonify({
+            'message': f'User {target_user.username} status changed from {old_status} to {new_status}',
+            'user': {
+                'id': target_user.id,
+                'username': target_user.username,
+                'email': target_user.email,
+                'status': target_user.status,
+                'updated_at': target_user.updated_at.isoformat()
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to update user status: {str(e)}'}), 500
+
+
+@bp.route('/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    """Delete a user (requires admin privileges)"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Check if user is admin
+        current_user = User.query.get(int(current_user_id))
+        if not current_user or not current_user.isAdmin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        # Find the user to delete
+        target_user = User.query.get(user_id)
+        if not target_user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Prevent admin from deleting themselves
+        if target_user.id == current_user.id:
+            return jsonify({'error': 'Cannot delete your own account'}), 400
+
+        # Prevent deleting other admins (optional security measure)
+        if target_user.isAdmin:
+            return jsonify({'error': 'Cannot delete admin users'}), 400
+
+        # Store user info before deletion
+        deleted_user_info = {
+            'id': target_user.id,
+            'username': target_user.username,
+            'email': target_user.email,
+            'fullname': target_user.fullname
+        }
+
+        # Delete user's profile image if it exists
+        if target_user.profile_image:
+            image_path = os.path.join(os.path.dirname(__file__), 'static', 
+                                     target_user.profile_image.lstrip('/static/'))
+            if os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                except OSError:
+                    pass  # Continue with deletion even if image removal fails
+
+        # Delete the user (cascade will handle related records like TTS, STT preferences, and feedback)
+        db.session.delete(target_user)
+        db.session.commit()
+
+        return jsonify({
+            'message': f'User {deleted_user_info["username"]} has been permanently deleted',
+            'deleted_user': deleted_user_info
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete user: {str(e)}'}), 500
+
+
+@bp.route('/admin/users/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_user_details(user_id):
+    """Get detailed information about a specific user (requires admin privileges)"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Check if user is admin
+        current_user = User.query.get(int(current_user_id))
+        if not current_user or not current_user.isAdmin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        # Find the user
+        target_user = User.query.get(user_id)
+        if not target_user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Get user's feedback count and average rating
+        user_feedback = Feedback.query.filter_by(user_id=user_id).all()
+        feedback_count = len(user_feedback)
+        avg_rating = sum(f.stars for f in user_feedback) / feedback_count if feedback_count > 0 else 0
+
+        return jsonify({
+            'user': {
+                'id': target_user.id,
+                'username': target_user.username,
+                'email': target_user.email,
+                'fullname': target_user.fullname,
+                'role': target_user.role,
+                'status': target_user.status,
+                'age': target_user.age,
+                'dateofbirth': target_user.dateofbirth.strftime('%Y-%m-%d'),
+                'profile_image': target_user.profile_image,
+                'isAdmin': target_user.isAdmin,
+                'created_at': target_user.created_at.isoformat(),
+                'updated_at': target_user.updated_at.isoformat()
+            },
+            'statistics': {
+                'feedback_count': feedback_count,
+                'average_rating': round(avg_rating, 2),
+                'has_tts_preferences': target_user.tts_preferences is not None,
+                'has_stt_preferences': target_user.stt_preferences is not None
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve user details: {str(e)}'}), 500
