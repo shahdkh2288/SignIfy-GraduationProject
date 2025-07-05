@@ -16,10 +16,9 @@ try:
     
     print("🚀 Starting SignIfy Flask Server...")
     print("📍 Available endpoints:")
-    print("  - /detect-landmarks (POST)")
-    print("  - /detect-sign (POST)")
-    print("  - /detect-video-signs (POST)")
-    print("  - /detect-multiple-signs (POST)")
+    print("  - /detect-video-signs (POST) - Main sign detection")
+    print("  - Session management endpoints")
+    print("  - User authentication endpoints")
     print("📊 Server running on http://0.0.0.0:5000")
     print("🌐 Accessible from network at http://192.168.1.3:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
