@@ -7,7 +7,7 @@ import 'package:record/record.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'home_providers.dart';
-import 'package:signify_project/services/userProfile.dart';
+import '../SignDetection/session_based_video_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -439,17 +439,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
-                    InkWell(
-                      onTap: () {},
-                      borderRadius: BorderRadius.circular(40),
-                      child: CircleAvatar(
-                        radius: 55,
-                        backgroundColor: Colors.blue.shade100,
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 40,
-                          color: Colors.blue,
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      // Navigate to session-based video recording screen
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SessionBasedVideoScreen(),
                         ),
+                      );
+
+                      // If user selected a word, add it to the input text
+                      if (result != null && result is String) {
+                        final currentText = ref.read(inputTextProvider);
+                        final newText =
+                            currentText.isEmpty
+                                ? result
+                                : '$currentText $result';
+                        ref.read(inputTextProvider.notifier).state = newText;
+                        _controller.text = newText;
+                        _controller.selection = TextSelection.collapsed(
+                          offset: newText.length,
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(40),
+                    child: CircleAvatar(
+                      radius: 55,
+                      backgroundColor: Colors.blue.shade100,
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 40,
+                        color: Colors.blue,
                       ),
                     ),
                   ],
