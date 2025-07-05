@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:signify_project/services/tts_service.dart';
 import 'package:signify_project/services/stt_service.dart';
+import 'package:signify_project/services/userProfile.dart' as user_service;
 import 'package:record/record.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -29,7 +30,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _controller = TextEditingController(text: ref.read(inputTextProvider));
     _player = AudioPlayer();
 
-    
     _configureAudioPlayer();
 
     _controller.addListener(() {
@@ -41,15 +41,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _configureAudioPlayer() async {
     try {
-      
       await _player.setAudioContext(
         AudioContext(
           android: AudioContextAndroid(
             isSpeakerphoneOn: true,
             stayAwake: true,
-            contentType: AndroidContentType.speech, 
+            contentType: AndroidContentType.speech,
             usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gainTransient, 
+            audioFocus: AndroidAudioFocus.gainTransient,
           ),
           iOS: AudioContextIOS(
             category: AVAudioSessionCategory.playback,
@@ -133,7 +132,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       print('Attempting to play audio from file: $filePath');
 
-      
       final file = File(filePath);
       if (await file.exists()) {
         final fileSize = await file.length();
@@ -143,26 +141,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      
       if (_player.state == PlayerState.playing) {
         await _player.stop();
       }
 
-     
       await Future.delayed(const Duration(milliseconds: 300));
 
-      
       await _player.setVolume(1.0);
 
-      
       await _player.setPlayerMode(PlayerMode.mediaPlayer);
 
-     
       await _player.play(DeviceFileSource(filePath));
 
       print('Audio playback started successfully from local file');
 
-      
       _player.onPlayerStateChanged.take(5).listen((PlayerState state) {
         print('Player state changed to: $state');
         if (state == PlayerState.playing) {
@@ -172,7 +164,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       });
 
-      
       _player.onPlayerComplete.take(1).listen((event) {
         print('Audio playback completed');
       });
@@ -190,7 +181,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(userProfileProvider);
+    final userProfileAsync = ref.watch(user_service.userProfileProvider);
     final inputText = ref.watch(inputTextProvider);
     final isLoading = ref.watch(isLoadingProvider);
     final sttText = ref.watch(sttTextProvider);
@@ -205,93 +196,132 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: profileAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
-            data: (user) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hi, ${user.fullname.isNotEmpty ? user.fullname.split(' ')[0] : "User"}',
-                          style: const TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'LeagueSpartan',
-                            color: Color(0xFF005FCE),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-
-                
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 32.0),
-                  child: Column(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8, bottom: 4),
-                        child: Text(
-                          'Voice it',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF005FCE),
-                            fontFamily: 'LeagueSpartan',
-                          ),
+                      userProfileAsync.when(
+                        data:
+                            (user) => Text(
+                              user.fullname.isNotEmpty
+                                  ? 'Hi, ${user.fullname.split(' ')[0]}'
+                                  : 'Hi, User',
+                              style: const TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LeagueSpartan',
+                                color: Color(0xFF005FCE),
+                              ),
+                            ),
+                        loading:
+                            () => const Text(
+                              'Hi, User',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LeagueSpartan',
+                                color: Color(0xFF005FCE),
+                              ),
+                            ),
+                        error:
+                            (_, __) => const Text(
+                              'Hi, User',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LeagueSpartan',
+                                color: Color(0xFF005FCE),
+                              ),
+                            ),
+                      ),
+                    ],
+                  ),
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.blue.shade100,
+                    child: const Icon(
+                      Icons.person,
+                      size: 80,
+                      color: Color(0xFF005FCE),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text(
+                        'Voice it',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005FCE),
+                          fontFamily: 'LeagueSpartan',
                         ),
                       ),
-                      SizedBox(
-                        height: 180,
-                        child: Card(
-                          color: Colors.blue.shade50,
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    IconButton(
-                                      icon: isLoading
-                                          ? const SizedBox(
+                    ),
+                    SizedBox(
+                      height: 180,
+                      child: Card(
+                        color: Colors.blue.shade50,
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon:
+                                        isLoading
+                                            ? const SizedBox(
                                               width: 24,
                                               height: 24,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
                                             )
-                                          : const Icon(Icons.volume_up),
-                                      onPressed: inputText.isEmpty || isLoading
-                                          ? null
-                                          : () async {
+                                            : const Icon(Icons.volume_up),
+                                    onPressed:
+                                        inputText.isEmpty || isLoading
+                                            ? null
+                                            : () async {
                                               print(
                                                 'TTS button pressed with text: $inputText',
                                               );
                                               ref
-                                                  .read(isLoadingProvider.notifier)
+                                                  .read(
+                                                    isLoadingProvider.notifier,
+                                                  )
                                                   .state = true;
                                               final filePath =
                                                   await TTSService.getTtsAudioDirect(
-                                                inputText,
-                                              );
+                                                    inputText,
+                                                  );
                                               ref
-                                                  .read(isLoadingProvider.notifier)
+                                                  .read(
+                                                    isLoadingProvider.notifier,
+                                                  )
                                                   .state = false;
 
                                               print(
                                                 'TTS service returned file path: $filePath',
                                               );
                                               if (filePath != null) {
-                                                await _playAudioFromFile(filePath);
+                                                await _playAudioFromFile(
+                                                  filePath,
+                                                );
                                               } else {
                                                 print(
                                                   'TTS service returned null file path',
@@ -307,136 +337,134 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                 );
                                               }
                                             },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        ref.read(inputTextProvider.notifier).state = '';
-                                        _controller.clear();
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                Expanded(
-                                  child: Scrollbar(
-                                    thumbVisibility: true,
-                                    child: TextField(
-                                      maxLength: 750,
-                                      maxLines: null,
-                                      expands: true,
-                                      controller: _controller,
-                                      decoration: const InputDecoration(
-                                        hintText: "Enter text here...",
-                                        border: InputBorder.none,
-                                        counterText: '',
-                                      ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      ref
+                                          .read(inputTextProvider.notifier)
+                                          .state = '';
+                                      _controller.clear();
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Expanded(
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: TextField(
+                                    maxLength: 750,
+                                    maxLines: null,
+                                    expands: true,
+                                    controller: _controller,
+                                    decoration: const InputDecoration(
+                                      hintText: "Enter text here...",
+                                      border: InputBorder.none,
+                                      counterText: '',
                                     ),
                                   ),
                                 ),
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: Text(
-                                    '${inputText.length}/750',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
+                              ),
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  '${inputText.length}/750',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                
-                const SizedBox(height: 18),
-                
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 18.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8, bottom: 4),
-                        child: Text(
-                          'Turn Voice to Words',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF005FCE),
-                            fontFamily: 'LeagueSpartan',
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 180,
-                        child: Card(
-                          color: Colors.blue.shade50,
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        ref.read(sttTextProvider.notifier).state = '';
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                Expanded(
-                                  child: Scrollbar(
-                                    thumbVisibility: true,
-                                    child: SingleChildScrollView(
-                                      child: Text(
-                                        sttText,
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: Text(
-                                    '${sttText.length}/750',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              ),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InkWell(
-                      onTap: _isListening ? _stopRecording : _startRecording,
-                      borderRadius: BorderRadius.circular(40),
-                      child: CircleAvatar(
-                        radius: 55,
-                        backgroundColor: Colors.blue.shade100,
-                        child: Icon(
-                          _isListening ? Icons.mic_off : Icons.mic,
-                          size: 55,
-                          color: Colors.blue,
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text(
+                        'Turn Voice to Words',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005FCE),
+                          fontFamily: 'LeagueSpartan',
                         ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 180,
+                      child: Card(
+                        color: Colors.blue.shade50,
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      ref.read(sttTextProvider.notifier).state =
+                                          '';
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Expanded(
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      sttText,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  '${sttText.length}/750',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  InkWell(
+                    onTap: _isListening ? _stopRecording : _startRecording,
+                    borderRadius: BorderRadius.circular(40),
+                    child: CircleAvatar(
+                      radius: 55,
+                      backgroundColor: Colors.blue.shade100,
+                      child: Icon(
+                        _isListening ? Icons.mic_off : Icons.mic,
+                        size: 55,
+                        color: Colors.blue,
                       ),
                     ),
                   ),
@@ -474,11 +502,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         color: Colors.blue,
                       ),
                     ),
-                  ],
-                ),
-                const Spacer(),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+            ],
           ),
         ),
       ),

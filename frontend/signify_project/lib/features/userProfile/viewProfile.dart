@@ -318,20 +318,33 @@ class _ProfileRow extends StatelessWidget {
           Image.asset(imagePath, width: imageWidth, height: imageHeight),
           const SizedBox(width: 16),
           Expanded(
-            child:
-                value.isNotEmpty
-                    ? Text(
-                      value,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.normal,
-                        fontSize: 20,
-                        fontFamily: 'LeagueSpartan',
-                      ),
-                      textAlign: TextAlign.right,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                    : const SizedBox.shrink(),
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 20,
+                fontFamily: 'LeagueSpartan',
+                color: Colors.black87,
+              ),
+            ),
           ),
+          if (value.isNotEmpty)
+            Expanded(
+              flex: 3,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  fontFamily: 'LeagueSpartan',
+                  color: Color(0xFF3B8EDB),
+                ),
+                textAlign: TextAlign.right,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           if (trailing != null) ...[const SizedBox(width: 12), trailing!],
         ],
       ),

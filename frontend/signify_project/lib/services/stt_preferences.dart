@@ -49,4 +49,27 @@ class STTSettingsNotifier
       state = AsyncValue.error(e.toString(), st);
     }
   }
+
+  Future<Map<String, dynamic>?> getCurrentSTTPreferences() async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'access_token');
+      final url = Uri.parse('http://10.0.2.2:5000/get-stt-preferences');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['stt_preferences'] ?? data;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
 }

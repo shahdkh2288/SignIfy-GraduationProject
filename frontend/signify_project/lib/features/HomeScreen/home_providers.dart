@@ -7,3 +7,4 @@ final ttsAudioUrlProvider = StateProvider<String?>((ref) => null);
 
 final userNameProvider = StateProvider<String>((ref) => '');
 final userProfileImageProvider = StateProvider<String?>((ref) => null);
+final userProfileProvider = StateProvider<Map<String, dynamic>?>((ref) => null);

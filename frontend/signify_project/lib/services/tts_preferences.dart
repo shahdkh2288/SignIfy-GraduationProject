@@ -44,4 +44,25 @@ class TTSSettingsNotifier
       state = AsyncValue.error(e.toString(), st);
     }
   }
+
+  Future<Map<String, dynamic>?> fetchTTSPreferences() async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'access_token');
+      final url = Uri.parse('http://10.0.2.2:5000/get-tts-preferences');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }
