@@ -738,6 +738,54 @@ def reset_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Failed to reset password: {str(e)}'}), 500
+    
+
+
+
+#----------------------------SEND FEEDBACK ------------------------------------------------
+@bp.route('/submit-feedback', methods=['POST'])
+@jwt_required()
+def submit_feedback():
+    """Submit user feedback with star rating and optional text"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.json
+
+        stars = data.get('stars')
+        feedback_text = data.get('feedback_text', '').strip()
+
+        # Validation
+        if not stars or not isinstance(stars, int):
+            return jsonify({'error': 'Stars rating is required and must be an integer'}), 400
+
+        if stars < 1 or stars > 5:
+            return jsonify({'error': 'Stars rating must be between 1 and 5'}), 400
+
+        if len(feedback_text) > 1000:
+            return jsonify({'error': 'Feedback text cannot exceed 1000 characters'}), 400
+
+        # Create new feedback
+        new_feedback = Feedback(
+            user_id=current_user_id,
+            stars=stars,
+            feedback_text=feedback_text if feedback_text else None
+        )
+
+        db.session.add(new_feedback)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Feedback submitted successfully',
+            'feedback_id': new_feedback.id,
+            'stars': new_feedback.stars
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to submit feedback: {str(e)}'}), 500
+
+
+
 
 
 #---------------------------SIGN LANGUAGE DETECTION-----------------------------------------------
