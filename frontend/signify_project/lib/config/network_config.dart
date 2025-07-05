@@ -4,7 +4,7 @@ class NetworkConfig {
   // Update this IP address to match your computer's IP address
   // Use 192.168.1.3 for your mobile phone
   // Use 10.0.2.2 for Android emulator
-  static const String serverIP = '192.168.1.3';
+  static const String serverIP = '10.0.2.2';
   static const String serverPort = '5000';
   static const String baseUrl = 'http://$serverIP:$serverPort';
 

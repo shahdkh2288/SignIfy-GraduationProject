@@ -182,28 +182,9 @@ class _EnhancedVideoRecordingScreenState
       _showProcessingDialog();
 
       final videoBytes = await videoFile.readAsBytes();
-      final result = await _signDetectionService.detectMultipleSigns(
-        videoBytes,
-        debug: true,
-      );
+      final result = await _signDetectionService.detectVideoSigns(videoBytes);
 
       if (result != null) {
-        // Print debug information for multiple signs detection
-        print('=== FLUTTER MULTIPLE SIGNS DEBUG INFO ===');
-        if (result['words'] != null) {
-          print('Detected words: ${result['words']}');
-          print('Sentence: ${result['sentence']}');
-          print('Segments count: ${result['segments']?.length ?? 0}');
-        } else if (result['word'] != null) {
-          print('Single word detected: ${result['word']}');
-          print('Confidence: ${result['confidence']}');
-        }
-
-        if (result['debug_info'] != null) {
-          final debugInfo = result['debug_info'];
-          print('Debug info available: ${debugInfo.runtimeType}');
-        }
-        print('=== END MULTIPLE SIGNS DEBUG INFO ===');
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
@@ -248,22 +229,9 @@ class _EnhancedVideoRecordingScreenState
       ref.read(isProcessingProvider.notifier).state = true;
 
       final videoBytes = await videoFile.readAsBytes();
-      final result = await _signDetectionService.detectVideoSigns(
-        videoBytes,
-        debug: true,
-      );
+      final result = await _signDetectionService.detectVideoSigns(videoBytes);
 
       if (result != null && result['word'] != null) {
-        // Print debug information for segment
-        print('=== FLUTTER SEGMENT DEBUG INFO ===');
-        print('Segment word detected: ${result['word']}');
-        print('Confidence: ${result['confidence']}');
-        if (result['debug_info'] != null) {
-          final debugInfo = result['debug_info'] as List;
-          print('Debug frames count: ${debugInfo.length}');
-        }
-        print('=== END SEGMENT DEBUG INFO ===');
-
         final currentWords = ref.read(detectedWordsProvider);
         final newWords = <String>[...currentWords, result['word']];
         ref.read(detectedWordsProvider.notifier).state = newWords;
@@ -829,9 +797,25 @@ class _EnhancedVideoRecordingScreenState
       ),
       body: Stack(
         children: [
-          // Camera Preview
+          // Camera Preview - using Positioned.fill to ensure full coverage
           if (_isCameraInitialized && controller != null)
-            Positioned.fill(child: CameraPreview(controller))
+            Positioned.fill(
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.fitWidth,
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      height:
+                          MediaQuery.of(context).size.width /
+                          controller.value.aspectRatio,
+                      child: CameraPreview(controller),
+                    ),
+                  ),
+                ),
+              ),
+            )
           else
             const Center(
               child: Column(
@@ -875,41 +859,43 @@ class _EnhancedVideoRecordingScreenState
             ),
           ),
 
-          // Detected words display (for continuous mode)
+          // Detected words display (for continuous mode) - positioned as overlay
           if (recordingMode == RecordingMode.continuous &&
               detectedWords.isNotEmpty)
             Positioned(
               top: 60,
               left: 16,
               right: 16,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Detected Words:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Detected Words:',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      detectedWords.join(' '),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 16,
+                      const SizedBox(height: 4),
+                      Text(
+                        detectedWords.join(' '),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
@@ -159,37 +158,10 @@ class _VideoRecordingScreenState extends ConsumerState<VideoRecordingScreen>
       final videoBytes = await videoFile.readAsBytes();
 
       // Send to backend for processing
-      final result = await _signDetectionService.detectVideoSigns(
-        videoBytes,
-        debug: true,
-      );
+      final result = await _signDetectionService.detectVideoSigns(videoBytes);
 
       if (result != null && result['word'] != null) {
         ref.read(detectionResultProvider.notifier).state = result['word'];
-
-        // Print debug information
-        print('=== FLUTTER DEBUG INFO ===');
-        print('Predicted word: ${result['word']}');
-        print('Confidence: ${result['confidence']}');
-        print('Frames processed: ${result['frames_processed']}');
-
-        if (result['debug_info'] != null) {
-          final debugInfo = result['debug_info'] as List;
-          print('Debug frames count: ${debugInfo.length}');
-          for (int i = 0; i < math.min(3, debugInfo.length); i++) {
-            final frameDebug = debugInfo[i];
-            print(
-              'Frame ${frameDebug['frame_number']}: shape=${frameDebug['landmarks_shape']}, mean=${frameDebug['landmarks_mean']}',
-            );
-          }
-        }
-
-        if (result['sequence_shape'] != null) {
-          print('Sequence shape: ${result['sequence_shape']}');
-          print('Padded shape: ${result['padded_shape']}');
-          print('Model input shape: ${result['model_input_shape']}');
-        }
-        print('=== END DEBUG INFO ===');
 
         // Close processing dialog
         if (Navigator.of(context).canPop()) {

@@ -16,6 +16,9 @@ import traceback
 import numpy as np
 import cv2
 import mediapipe as mp
+import tensorflow as tf
+import pickle
+import openai
 from io import BytesIO
 from PIL import Image
 import tensorflow as tf
@@ -747,20 +750,20 @@ mp_face_mesh = mp.solutions.face_mesh
 hands = mp_hands.Hands(
     static_image_mode=False, 
     max_num_hands=2,  # Allow both hands
-    min_detection_confidence=0.7,
+    min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 )
 
 pose = mp_pose.Pose(
     static_image_mode=False,
-    min_detection_confidence=0.7,
+    min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 )
 
 face_mesh = mp_face_mesh.FaceMesh(
     static_image_mode=False,
     refine_landmarks=True,
-    min_detection_confidence=0.7,
+    min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 )
 
@@ -804,7 +807,8 @@ try:
         if os.path.exists(label_encoder_path):
             with open(label_encoder_path, 'rb') as f:
                 label_encoder = pickle.load(f)
-            print("Label encoder loaded successfully")
+            print(f"Label encoder loaded successfully with {len(label_encoder.classes_)} classes")
+            print(f"Label encoder classes: {label_encoder.classes_[:10]}...")  # Show first 10 classes
         else:
             label_encoder = None
             print("Label encoder not found, using default word dictionary")
@@ -825,7 +829,7 @@ word_dict = {
 }
 
 # Add constants for model input
-MAX_FRAMES = 143  # From your notebook
+MAX_FRAMES = 140  # From your notebook
 
 def extract_full_landmarks(image_np):
     """Extract landmarks exactly as in the training notebook's get_frame_landmarks function."""
@@ -888,115 +892,9 @@ def pad_sequence(landmarks_sequence, target_length=MAX_FRAMES):
         return np.pad(landmarks_sequence, ((0, pad_length), (0, 0), (0, 0)), 
                      mode='constant', constant_values=0)
 
-@bp.route('/detect-landmarks', methods=['POST'])
-def detect_landmarks():
-    """Extract full landmarks (hands, pose, face) from a single frame image using MediaPipe."""
-    if 'frame' not in request.files:
-        return jsonify({'error': 'Frame image is required'}), 400
-
-    frame_file = request.files['frame']
-    if frame_file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    try:
-        # Read and preprocess image
-        image = Image.open(frame_file.stream)
-        # Resize for optimal MediaPipe processing
-        image = image.resize((640, 480))
-        image_np = np.array(image.convert('RGB'))
-
-        # Extract full landmarks (hands, pose, face)
-        all_landmarks = extract_full_landmarks(image_np)
-        
-        if all_landmarks is not None:
-            return jsonify({
-                'landmarks': all_landmarks.tolist(),
-                'shape': all_landmarks.shape,
-                'message': 'Full landmarks extracted successfully'
-            }), 200
-        else:
-            return jsonify({'error': 'Failed to extract landmarks'}), 400
-
-    except Exception as e:
-        print(f"Error in landmark detection: {str(e)}")
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to process frame: {str(e)}'}), 500
-
-@bp.route('/detect-sign', methods=['POST'])
-def detect_sign():
-    """Predict sign language from landmarks sequence - EXACT MATCH to training notebook."""
-    data = request.json
-    landmarks = data.get('landmarks')
-    
-    if not landmarks:
-        return jsonify({'error': 'Landmarks data is required'}), 400
-    
-    # Convert landmarks to numpy array
-    landmarks_array = np.array(landmarks, dtype=np.float32)
-    
-    # Check if it's a single frame or sequence
-    if landmarks_array.ndim == 2:
-        # Single frame: add time dimension
-        landmarks_array = landmarks_array[np.newaxis, :]
-    
-    print(f"Input landmarks shape: {landmarks_array.shape}")
-
-    try:
-        if interpreter is not None:
-            # Pad/truncate to model's expected sequence length (143 frames)
-            padded_landmarks = pad_sequence(landmarks_array, MAX_FRAMES)
-            
-            # Reshape to model input format: (1, 143, 100, 3) - EXACT MATCH to training
-            # The model expects input shape (batch_size, max_frames, num_landmarks, coordinates)
-            model_input = padded_landmarks.reshape(1, MAX_FRAMES, 100, 3)
-            print(f"Model input shape: {model_input.shape}")
-            
-            # Verify input shape matches expected
-            expected_shape = input_details[0]['shape']
-            if model_input.shape != tuple(expected_shape):
-                return jsonify({
-                    'error': f'Input shape mismatch. Expected {expected_shape}, got {model_input.shape}'
-                }), 400
-            
-            # Set input tensor
-            interpreter.set_tensor(input_details[0]['index'], model_input.astype(np.float32))
-            interpreter.invoke()
-            
-            # Get output
-            output_data = interpreter.get_tensor(output_details[0]['index'])
-            predicted_index = np.argmax(output_data, axis=1)[0]
-            confidence = float(np.max(output_data))
-            
-            # Use label encoder if available (like in the training notebook)
-            if label_encoder is not None:
-                try:
-                    predicted_word = label_encoder.inverse_transform([predicted_index])[0]
-                except (ValueError, IndexError):
-                    predicted_word = f'Class_{predicted_index}'
-            else:
-                predicted_word = word_dict.get(predicted_index, 'Unknown')
-                
-        else:
-            # Mock prediction for testing
-            predicted_word = 'hello'  # Based on your notebook examples
-            confidence = 0.85
-            predicted_index = -1
-
-        return jsonify({
-            'word': predicted_word,
-            'confidence': confidence,
-            'predicted_index': int(predicted_index) if interpreter else -1,
-            'message': 'Sign detected successfully'
-        }), 200
-
-    except Exception as e:
-        print(f"Error in sign detection: {str(e)}")
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to predict sign: {str(e)}'}), 500
-
 @bp.route('/detect-video-signs', methods=['POST'])
 def detect_video_signs():
-    """Process video for dynamic sign language detection."""
+    """Process individual sign videos for sequential recording workflow with session management."""
     if 'video' not in request.files:
         return jsonify({'error': 'Video file is required'}), 400
 
@@ -1004,8 +902,12 @@ def detect_video_signs():
     if video_file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
 
-    # Check if debug mode is requested
+    # Check parameters
     debug_mode = request.form.get('debug', 'false').lower() == 'true'
+    flip_camera = request.form.get('flip_camera', 'auto').lower()  # auto, true, false
+    session_id = request.form.get('session_id', None)  # Session ID for multi-sign recording
+    sequence_number = int(request.form.get('sequence_number', 1))  # Position in sequence
+    is_final = request.form.get('is_final', 'false').lower() == 'true'  # Last sign in sequence
     
     temp_path = None
     try:
@@ -1016,16 +918,22 @@ def detect_video_signs():
         temp_path = os.path.join(static_dir, f'temp_video_{timestamp}.mp4')
         video_file.save(temp_path)
 
-        # Extract frames and landmarks using full landmark extraction
+        # Extract frames and landmarks for SINGLE SIGN
         cap = cv2.VideoCapture(temp_path)
         landmarks_sequence = []
         frame_count = 0
-        debug_info = []  # Store debug information
+        debug_info = []
+        flip_applied = False
         
-        # Get video properties for debugging
+        # Get video properties
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        print(f"Video properties: {fps} FPS, {total_frames} total frames")
+        duration = total_frames / fps if fps > 0 else 0
+        print(f"Processing single sign video: {fps} FPS, {total_frames} frames, {duration:.2f}s duration")
+        
+        # Camera flip logic
+        force_flip = flip_camera == 'true'
+        auto_flip = flip_camera == 'auto'
         
         while cap.isOpened():
             ret, frame = cap.read()
@@ -1036,110 +944,143 @@ def detect_video_signs():
             # Convert BGR to RGB for MediaPipe
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Resize frame for better MediaPipe processing
-            height, width = frame_rgb.shape[:2]
-            if width > 640:
-                scale = 640 / width
-                new_width = 640
-                new_height = int(height * scale)
-                frame_rgb = cv2.resize(frame_rgb, (new_width, new_height))
+            # # Resize frame for better MediaPipe processing
+            # height, width = frame_rgb.shape[:2]
+            # original_size = (width, height)
+            # if width > 640:
+            #     scale = 640 / width
+            #     new_width = 640
+            #     new_height = int(height * scale)
+            #     frame_rgb = cv2.resize(frame_rgb, (new_width, new_height))
+            #     processed_size = (new_width, new_height)
+            # else:
+            #     processed_size = original_size
             
-            # Use our full landmark extraction function
+            # Use original frame size without resizing
+            height, width = frame_rgb.shape[:2]
+            original_size = (width, height)
+            processed_size = original_size
+            
+            # Apply camera flip correction if needed
+            if force_flip or (auto_flip and should_flip_camera(frame_count, landmarks_sequence)):
+                frame_rgb = cv2.flip(frame_rgb, 1)  # Horizontal flip
+                flip_applied = True
+            
+            # Extract landmarks from each frame
             frame_landmarks = extract_full_landmarks(frame_rgb)
+            
             if frame_landmarks is not None:
                 landmarks_sequence.append(frame_landmarks)
-                print(f"Frame {frame_count}: landmarks extracted successfully")
+                # Only print every 20th frame to reduce log spam
+                if frame_count % 20 == 0:
+                    print(f"Frame {frame_count}: landmarks extracted successfully")
                 
-                # Store debug information if requested
+                # Store debug information if requested (simplified)
                 if debug_mode:
                     debug_frame_info = {
                         'frame_number': frame_count,
-                        'landmarks_shape': frame_landmarks.shape,
+                        'landmarks_detected': True,
                         'landmarks_count': len(frame_landmarks),
                         'non_zero_landmarks': np.count_nonzero(frame_landmarks),
-                        'landmarks_mean': float(np.mean(frame_landmarks)),
-                        'landmarks_std': float(np.std(frame_landmarks)),
-                        'landmarks_sample': frame_landmarks[:5].tolist()  # First 5 landmarks as sample
+                        'flip_applied': flip_applied
                     }
                     debug_info.append(debug_frame_info)
             else:
-                print(f"Frame {frame_count}: no landmarks detected")
+                # Only print every 20th frame to reduce log spam
+                if frame_count % 20 == 0:
+                    print(f"Frame {frame_count}: no landmarks detected")
                 if debug_mode:
                     debug_info.append({
                         'frame_number': frame_count,
                         'landmarks_detected': False,
-                        'error': 'No landmarks extracted'
+                        'flip_applied': flip_applied
                     })
             
-            # Limit frames to prevent excessive processing
+            # For single signs, limit to MAX_FRAMES (not 3x like multi-sign)
             if frame_count >= MAX_FRAMES:
-                print(f"Reached maximum frames limit: {MAX_FRAMES}")
+                print(f"Reached maximum frames limit for single sign: {MAX_FRAMES}")
                 break
         
         cap.release()
-        print(f"Total frames processed: {frame_count}, landmarks extracted: {len(landmarks_sequence)}")
+        print(f"Extracted landmarks from {len(landmarks_sequence)} frames")
+        print(f"Camera flip applied: {flip_applied}")
 
         if not landmarks_sequence:
             return jsonify({'error': 'No hands detected in video'}), 400
 
-        print(f"Processing {len(landmarks_sequence)} frames for prediction")
+        # Process single sign (no segmentation needed)
+        prediction = predict_single_sign(landmarks_sequence)
+        print(f"Prediction: '{prediction['word']}' (confidence: {prediction['confidence']:.2f})")
         
-        # Convert to numpy array and pad/truncate to match model requirements
-        landmarks_array = np.array(landmarks_sequence, dtype=np.float32)
-        print(f"Original sequence shape: {landmarks_array.shape}")
+        # Check if prediction is valid but don't block it
+        if prediction['word'] in ['unknown', 'error'] or prediction['confidence'] < 0.1:
+            print(f"Warning: Low confidence or invalid prediction")
         
-        # Pad or truncate to MAX_FRAMES (143)
-        padded_sequence = pad_sequence(landmarks_array, target_length=MAX_FRAMES)
-        print(f"Padded sequence shape: {padded_sequence.shape}")
+        # Always return a prediction, even if it's 'unknown'
+        if not prediction or 'word' not in prediction:
+            print("Error: prediction is invalid, creating fallback")
+            prediction = {'word': 'unknown', 'confidence': 0.0, 'predicted_index': -1}
         
-        # Prepare for model input (add batch dimension)
-        model_input = np.expand_dims(padded_sequence, axis=0)
-        print(f"Model input shape: {model_input.shape}")
-        
-        # Use the TFLite model for prediction
-        if interpreter is not None:
-            try:
-                interpreter.set_tensor(input_details[0]['index'], model_input)
-                interpreter.invoke()
-                output_data = interpreter.get_tensor(output_details[0]['index'])
-                
-                predicted_index = np.argmax(output_data, axis=1)[0]
-                confidence = float(np.max(output_data))
-                
-                print(f"Prediction: index={predicted_index}, confidence={confidence}")
-                
-                # Use label encoder if available, otherwise fallback to word_dict
-                if label_encoder is not None:
-                    try:
-                        predicted_word = label_encoder.inverse_transform([predicted_index])[0]
-                    except (ValueError, IndexError):
-                        predicted_word = f'Class_{predicted_index}'
-                else:
-                    predicted_word = word_dict.get(predicted_index, 'Unknown')
-                
-                print(f"Predicted word: {predicted_word}")
-                
-            except Exception as model_error:
-                print(f"Model prediction error: {model_error}")
-                # Fallback prediction
-                predicted_word = 'hello'
-                confidence = 0.78
+        # Handle session management for sequential recording
+        if session_id:
+            # Store/update sign in session
+            session_data = manage_sign_session(session_id, sequence_number, prediction, is_final)
+            
+            if is_final:
+                # Return complete sentence when user finishes
+                response_data = {
+                    'word': prediction['word'],
+                    'confidence': prediction['confidence'],
+                    'session_id': session_id,
+                    'sequence_number': sequence_number,
+                    'is_final': True,
+                    'complete_sequence': session_data['signs'],
+                    'complete_sentence': session_data['sentence'],
+                    'gpt_sentence': session_data.get('gpt_sentence', session_data['sentence']),
+                    'raw_sentence': session_data.get('raw_sentence', session_data['sentence']),
+                    'words': [sign['word'] for sign in session_data['signs'] if sign['word'] not in ['unknown', 'error']],
+                    'total_signs': len(session_data['signs']),
+                    'overall_confidence': session_data['overall_confidence'],
+                    'frames_processed': len(landmarks_sequence),
+                    'video_duration': duration,
+                    'camera_flip_applied': flip_applied,
+                    'flip_mode': flip_camera,
+                    'message': f'Sequence complete: {session_data["sentence"]}',
+                    'debug_info': debug_info if debug_mode else None
+                }
+                return jsonify(response_data), 200
+            else:
+                # Return individual sign result and continue session
+                response_data = {
+                    'word': prediction['word'],
+                    'confidence': prediction['confidence'],
+                    'session_id': session_id,
+                    'sequence_number': sequence_number,
+                    'is_final': False,
+                    'current_sequence': session_data['signs'],
+                    'partial_sentence': session_data['sentence'],
+                    'signs_so_far': len(session_data['signs']),
+                    'frames_processed': len(landmarks_sequence),
+                    'video_duration': duration,
+                    'camera_flip_applied': flip_applied,
+                    'flip_mode': flip_camera,
+                    'message': f'Sign {sequence_number} detected: {prediction["word"]}',
+                    'debug_info': debug_info if debug_mode else None
+                }
+                return jsonify(response_data), 200
         else:
-            print("No model available, using mock prediction")
-            # Mock prediction for dynamic signs
-            predicted_word = 'hello'
-            confidence = 0.78
-
-        return jsonify({
-            'word': predicted_word,
-            'confidence': confidence,
-            'frames_processed': len(landmarks_sequence),
-            'message': 'Video processed successfully',
-            'debug_info': debug_info if debug_mode else None,
-            'sequence_shape': landmarks_array.shape if debug_mode else None,
-            'padded_shape': padded_sequence.shape if debug_mode else None,
-            'model_input_shape': model_input.shape if debug_mode else None
-        }), 200
+            # Single sign mode (no session)
+            response_data = {
+                'word': prediction['word'],
+                'confidence': prediction['confidence'],
+                'frames_processed': len(landmarks_sequence),
+                'video_duration': duration,
+                'camera_flip_applied': flip_applied,
+                'flip_mode': flip_camera,
+                'message': f'Single sign detected: {prediction["word"]}',
+                'debug_info': debug_info if debug_mode else None
+            }
+            return jsonify(response_data), 200
 
     except Exception as e:
         print(f"Error in video processing: {str(e)}")
@@ -1152,6 +1093,18 @@ def detect_video_signs():
                 os.remove(temp_path)
             except OSError as cleanup_error:
                 print(f"Failed to clean up video file: {cleanup_error}")
+
+def should_flip_camera(frame_count, landmarks_sequence, sample_frames=10):
+    """
+    Auto-detect if camera flip should be applied based on hand positioning patterns.
+    This is called during the first few frames to make a decision.
+    """
+    if frame_count > sample_frames or len(landmarks_sequence) < 5:
+        return False  # Decision already made or not enough data
+    
+    # For now, we'll use a simple heuristic
+    # In practice, you might analyze hand positions relative to face/body
+    return False  # Default to no flip for auto mode
 
 def detect_motion_pause(landmarks_sequence, window_size=5, motion_threshold=0.02):
     """Detect motion and pause segments in landmark sequence for sign segmentation."""
@@ -1261,314 +1214,374 @@ def predict_sign_from_segment(segment):
         print(f"Error predicting sign from segment: {e}")
         return {'word': 'error', 'confidence': 0.0}
 
-@bp.route('/detect-multiple-signs', methods=['POST'])
-def detect_multiple_signs():
-    """Process video for multiple sign language detection with automatic segmentation."""
-    if 'video' not in request.files:
-        return jsonify({'error': 'Video file is required'}), 400
+# Initialize OpenAI client
+try:
+    openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    print("OpenAI client initialized successfully")
+except Exception as e:
+    openai_client = None
+    print(f"Failed to initialize OpenAI client: {e}")
 
-    video_file = request.files['video']
-    if video_file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    temp_path = None
-    try:
-        # Save video temporarily
-        static_dir = os.path.join(os.path.dirname(__file__), 'static')
-        os.makedirs(static_dir, exist_ok=True)
-        timestamp = int(time.time() * 1000)
-        temp_path = os.path.join(static_dir, f'temp_multi_video_{timestamp}.mp4')
-        video_file.save(temp_path)
-
-        # Extract frames and landmarks
-        cap = cv2.VideoCapture(temp_path)
-        landmarks_sequence = []
-        frame_count = 0
-        
-        # Get video properties
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        duration = total_frames / fps if fps > 0 else 0
-        print(f"Multi-sign video: {fps} FPS, {total_frames} frames, {duration:.2f}s duration")
-        
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-                
-            frame_count += 1
-            # Convert BGR to RGB for MediaPipe
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # Resize frame for better MediaPipe processing
-            height, width = frame_rgb.shape[:2]
-            if width > 640:
-                scale = 640 / width
-                new_width = 640
-                new_height = int(height * scale)
-                frame_rgb = cv2.resize(frame_rgb, (new_width, new_height))
-            
-            # Extract landmarks from each frame
-            frame_landmarks = extract_full_landmarks(frame_rgb)
-            if frame_landmarks is not None:
-                landmarks_sequence.append(frame_landmarks)
-            
-            # Process reasonable number of frames (allow longer videos than single sign)
-            if frame_count >= MAX_FRAMES * 3:  # Allow up to ~3x longer videos
-                print(f"Reached maximum frames limit for multi-sign: {MAX_FRAMES * 3}")
-                break
-        
-        cap.release()
-        print(f"Extracted landmarks from {len(landmarks_sequence)} frames")
-
-        if not landmarks_sequence:
-            return jsonify({'error': 'No hands detected in video'}), 400
-
-        # Segment the video into individual signs
-        sign_segments = segment_video_signs(landmarks_sequence)
-        
-        if not sign_segments:
-            return jsonify({'error': 'No sign segments detected. Try making clearer pauses between signs.'}), 400
-
-        # Predict each segment
-        predictions = []
-        segment_details = []
-        
-        for i, segment in enumerate(sign_segments):
-            print(f"Processing segment {i+1} with {len(segment)} frames...")
-            prediction = predict_sign_from_segment(segment)
-            predictions.append(prediction['word'])
-            
-            segment_details.append({
-                'segment_id': i + 1,
-                'word': prediction['word'],
-                'confidence': prediction['confidence'],
-                'frame_count': len(segment),
-                'start_frame': sum(len(seg) for seg in sign_segments[:i]),
-                'end_frame': sum(len(seg) for seg in sign_segments[:i+1])
-            })
-        
-        # Create sentence from predictions
-        sentence = ' '.join(predictions)
-        
-        return jsonify({
-            'words': predictions,
-            'sentence': sentence,
-            'segments': segment_details,
-            'total_segments': len(sign_segments),
-            'total_frames_processed': len(landmarks_sequence),
-            'video_duration': duration,
-            'message': f'Detected {len(predictions)} signs in video'
-        }), 200
-
-    except Exception as e:
-        print(f"Error in multi-sign video processing: {str(e)}")
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to process video: {str(e)}'}), 500
-    finally:
-        # Clean up temporary file
-        if temp_path and os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except OSError as cleanup_error:
-                print(f"Failed to clean up video file: {cleanup_error}")
-
-@bp.route('/debug-video-landmarks', methods=['POST'])
-def debug_video_landmarks():
-    """Debug endpoint to extract and return raw landmarks from video for inspection."""
-    if 'video' not in request.files:
-        return jsonify({'error': 'Video file is required'}), 400
-
-    video_file = request.files['video']
-    if video_file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    # Get optional parameters
-    max_frames = int(request.form.get('max_frames', MAX_FRAMES))
-    include_raw_landmarks = request.form.get('include_raw_landmarks', 'false').lower() == 'true'
+def sign_words_to_sentence_with_gpt(sign_words):
+    """Convert detected sign words into a grammatically correct sentence using GPT."""
+    if not openai_client:
+        # Fallback: just join words with spaces
+        return ' '.join(sign_words)
     
-    temp_path = None
     try:
-        # Save video temporarily
-        static_dir = os.path.join(os.path.dirname(__file__), 'static')
-        os.makedirs(static_dir, exist_ok=True)
-        timestamp = int(time.time() * 1000)
-        temp_path = os.path.join(static_dir, f'debug_video_{timestamp}.mp4')
-        video_file.save(temp_path)
+        # Filter out error/unknown words
+        valid_words = [word for word in sign_words if word not in ['unknown', 'error', '']]
+        
+        if not valid_words:
+            return "No valid words detected"
+        
+        # Create a prompt for GPT to form a grammatical sentence
+        words_string = ', '.join(valid_words)
+        prompt = f"Convert this list of sign language words into a grammatically correct and natural sentence: {words_string}. Only return the sentence, nothing else."
 
-        # Extract frames and landmarks
-        cap = cv2.VideoCapture(temp_path)
-        landmarks_sequence = []
-        frame_analysis = []
-        frame_count = 0
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a helpful assistant that converts sign language word outputs into complete, grammatically correct sentences. Return only the sentence without any explanations or additional text."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+            max_tokens=100,
+            temperature=0.7
+        )
+
+        gpt_sentence = response.choices[0].message.content.strip()
+        #print(f"GPT converted '{words_string}' to: '{gpt_sentence}'")
+        return gpt_sentence
         
-        # Get video properties
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        duration = total_frames / fps if fps > 0 else 0
+    except Exception as e:
+        print(f"Error with GPT sentence generation: {e}")
+        # Fallback: just join words with spaces
+        return ' '.join(valid_words)
+
+# Global variable to store sign sessions in memory
+sign_sessions = {}
+
+def predict_single_sign(landmarks_sequence):
+    """Predict a single sign from a landmarks sequence for sequential recording workflow."""
+    if not landmarks_sequence or interpreter is None:
+        return {'word': 'unknown', 'confidence': 0.0}
+    
+    try:
+        # Convert landmarks sequence to numpy array
+        sequence_array = np.array(landmarks_sequence, dtype=np.float32)
         
-        print(f"Debug mode: Processing video - {fps} FPS, {total_frames} frames, {duration:.2f}s duration")
+        # Pad or truncate to model's expected sequence length (140 frames)
+        padded_ = sequence_array[:100, :, :]
+        padded_sequence = pad_sequence(padded_, target_length=MAX_FRAMES)
         
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-                
-            frame_count += 1
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # Resize frame for MediaPipe
-            height, width = frame_rgb.shape[:2]
-            original_size = (width, height)
-            if width > 640:
-                scale = 640 / width
-                new_width = 640
-                new_height = int(height * scale)
-                frame_rgb = cv2.resize(frame_rgb, (new_width, new_height))
-                processed_size = (new_width, new_height)
-            else:
-                processed_size = original_size
-            
-            # Extract landmarks
-            frame_landmarks = extract_full_landmarks(frame_rgb)
-            
-            frame_info = {
-                'frame_number': frame_count,
-                'timestamp': (frame_count - 1) / fps if fps > 0 else 0,
-                'original_size': original_size,
-                'processed_size': processed_size,
-                'landmarks_detected': frame_landmarks is not None
-            }
-            
-            if frame_landmarks is not None:
-                landmarks_sequence.append(frame_landmarks)
-                
-                # Analyze landmarks
-                frame_info.update({
-                    'landmarks_shape': frame_landmarks.shape,
-                    'landmarks_count': len(frame_landmarks),
-                    'non_zero_landmarks': int(np.count_nonzero(frame_landmarks)),
-                    'landmarks_mean': float(np.mean(frame_landmarks)),
-                    'landmarks_std': float(np.std(frame_landmarks)),
-                    'landmarks_min': float(np.min(frame_landmarks)),
-                    'landmarks_max': float(np.max(frame_landmarks)),
-                    'x_range': [float(np.min(frame_landmarks[:, 0])), float(np.max(frame_landmarks[:, 0]))],
-                    'y_range': [float(np.min(frame_landmarks[:, 1])), float(np.max(frame_landmarks[:, 1]))],
-                    'z_range': [float(np.min(frame_landmarks[:, 2])), float(np.max(frame_landmarks[:, 2]))]
-                })
-                
-                # Include raw landmarks if requested (warning: can be large)
-                if include_raw_landmarks:
-                    frame_info['raw_landmarks'] = frame_landmarks.tolist()
-            
-            frame_analysis.append(frame_info)
-            
-            # Limit frames
-            if frame_count >= max_frames:
-                print(f"Reached frame limit: {max_frames}")
-                break
+        # Prepare for model input (add batch dimension)
+        model_input = np.expand_dims(padded_sequence, axis=0)
         
-        cap.release()
+        # Set input tensor and run inference
+        interpreter.set_tensor(input_details[0]['index'], model_input)
+        interpreter.invoke()
         
-        # Analysis summary
-        total_landmarks_frames = len(landmarks_sequence)
-        detection_rate = total_landmarks_frames / frame_count if frame_count > 0 else 0
+        # Get output
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+        predicted_index = np.argmax(output_data, axis=1)[0]
+        confidence = float(np.max(output_data))
         
-        # Convert landmarks sequence to numpy for analysis
-        if landmarks_sequence:
-            landmarks_array = np.array(landmarks_sequence, dtype=np.float32)
-            sequence_analysis = {
-                'original_shape': landmarks_array.shape,
-                'frames_with_landmarks': total_landmarks_frames,
-                'detection_rate': detection_rate,
-                'sequence_mean': float(np.mean(landmarks_array)),
-                'sequence_std': float(np.std(landmarks_array)),
-                'sequence_min': float(np.min(landmarks_array)),
-                'sequence_max': float(np.max(landmarks_array))
-            }
-            
-            # Analyze padding requirements
-            padded_sequence = pad_sequence(landmarks_array, target_length=MAX_FRAMES)
-            sequence_analysis.update({
-                'padded_shape': padded_sequence.shape,
-                'padding_added': MAX_FRAMES - total_landmarks_frames if total_landmarks_frames < MAX_FRAMES else 0,
-                'truncated_frames': total_landmarks_frames - MAX_FRAMES if total_landmarks_frames > MAX_FRAMES else 0
-            })
+        # Use label encoder if available
+        if label_encoder is not None:
+            try:
+                predicted_word = label_encoder.inverse_transform([predicted_index])[0]
+            except (ValueError, IndexError) as e:
+                # Try to get the number of classes from the label encoder
+                try:
+                    num_classes = len(label_encoder.classes_)
+                    # If the predicted index is too high, try using modulo to wrap around
+                    if predicted_index >= num_classes:
+                        # Try wrapping around or use a fallback approach
+                        wrapped_index = predicted_index % num_classes
+                        try:
+                            predicted_word = label_encoder.inverse_transform([wrapped_index])[0]
+                        except:
+                            predicted_word = 'sign_detected'  # More meaningful than 'unknown'
+                    else:
+                        predicted_word = f'Class_{predicted_index}'
+                except Exception as inner_e:
+                    predicted_word = 'sign_detected'  # More meaningful than 'unknown'
         else:
-            sequence_analysis = {
-                'error': 'No landmarks detected in any frame',
-                'frames_processed': frame_count,
-                'detection_rate': 0
-            }
-
-        return jsonify({
-            'video_info': {
-                'fps': fps,
-                'total_frames': total_frames,
-                'duration_seconds': duration,
-                'frames_processed': frame_count
-            },
-            'landmark_analysis': sequence_analysis,
-            'frame_details': frame_analysis,
-            'model_requirements': {
-                'expected_frames': MAX_FRAMES,
-                'expected_landmarks_per_frame': TOTAL_LANDMARKS,
-                'expected_coordinates_per_landmark': 3
-            },
-            'message': f'Debug analysis complete. Processed {frame_count} frames, extracted landmarks from {total_landmarks_frames} frames.'
-        }), 200
-
-    except Exception as e:
-        print(f"Error in debug landmark extraction: {str(e)}")
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to debug video landmarks: {str(e)}'}), 500
-    finally:
-        # Clean up
-        if temp_path and os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except OSError as cleanup_error:
-                print(f"Failed to clean up debug video file: {cleanup_error}")
-
-@bp.route('/debug-landmark-config', methods=['GET'])
-def debug_landmark_config():
-    """Debug endpoint to verify landmark extraction configuration matches the training notebook."""
-    config_info = {
-        'landmark_counts': {
-            'HAND_NUM': HAND_NUM,
-            'POSE_NUM': POSE_NUM,
-            'FACE_NUM': FACE_NUM,
-            'TOTAL_LANDMARKS': TOTAL_LANDMARKS
-        },
-        'calculated_total': HAND_NUM * 2 + POSE_NUM + FACE_NUM,
-        'model_requirements': {
-            'MAX_FRAMES': MAX_FRAMES,
-            'expected_input_shape': f"({MAX_FRAMES}, {TOTAL_LANDMARKS}, 3)"
-        },
-        'filtered_indices': {
-            'filtered_pose_count': len(filtered_pose),
-            'filtered_face_count': len(filtered_face),
-            'filtered_pose_sample': filtered_pose[:10].tolist(),
-            'filtered_face_sample': filtered_face[:10].tolist()
-        },
-        'mediapipe_setup': {
-            'hands_confidence': 0.8,
-            'pose_confidence': 0.8,
-            'face_confidence': 0.8
+            predicted_word = word_dict.get(predicted_index, 'Unknown')
+            # Add extra check for word_dict
+            if predicted_index not in word_dict:
+                predicted_word = 'unknown'
+        
+        return {
+            'word': predicted_word,
+            'confidence': confidence,
+            'predicted_index': int(predicted_index)
         }
-    }
+        
+    except Exception as e:
+        print(f"Error predicting single sign: {e}")
+        traceback.print_exc()
+        return {'word': 'error', 'confidence': 0.0}
+
+def manage_sign_session(session_id, sequence_number, prediction, is_final):
+    """Manage sign sessions for sequential recording workflow."""
+    try:
+        # Initialize session if it doesn't exist
+        if session_id not in sign_sessions:
+            sign_sessions[session_id] = {
+                'signs': [],
+                'created_at': datetime.utcnow(),
+                'last_updated': datetime.utcnow()
+            }
+        
+        session = sign_sessions[session_id]
+        
+        # Add or update the sign at the specified sequence number
+        sign_entry = {
+            'sequence_number': sequence_number,
+            'word': prediction['word'],
+            'confidence': prediction['confidence'],
+            'predicted_index': prediction.get('predicted_index', -1),
+            'timestamp': datetime.utcnow()
+        }
+        
+        # Find if this sequence number already exists and update it, or add new
+        updated = False
+        for i, existing_sign in enumerate(session['signs']):
+            if existing_sign['sequence_number'] == sequence_number:
+                session['signs'][i] = sign_entry
+                updated = True
+                break
+        
+        if not updated:
+            session['signs'].append(sign_entry)
+        
+        # Sort signs by sequence number
+        session['signs'].sort(key=lambda x: x['sequence_number'])
+        
+        # Update session metadata
+        session['last_updated'] = datetime.utcnow()
+        session['total_signs'] = len(session['signs'])
+        
+        # Create sentence from all signs
+        words = [sign['word'] for sign in session['signs'] if sign['word'] not in ['unknown', 'error']]
+        all_words = [sign['word'] for sign in session['signs']]  # Include all words for debugging
+        
+        print(f"All detected words: {all_words}")
+        print(f"Valid words for sentence: {words}")
+        
+        # Use GPT to generate grammatical sentence when session is final
+        if is_final:
+            if words:
+                print(f"Final sequence detected. Generate sentence from words: {words}")
+                session['gpt_sentence'] = sign_words_to_sentence_with_gpt(words)
+                session['raw_sentence'] = ' '.join(words)  # Keep the original for reference
+                session['sentence'] = session['gpt_sentence']  # Use GPT sentence as primary
+                print(f"GPT generated sentence: '{session['gpt_sentence']}'")
+            else:
+                print("No valid words found for final sequence")
+                session['gpt_sentence'] = "No valid signs detected"
+                session['raw_sentence'] = ' '.join(all_words)  # Show all words including unknowns
+                session['sentence'] = session['gpt_sentence']
+        else:
+            session['sentence'] = ' '.join(words) if words else ' '.join(all_words)
+        
+        # Calculate overall confidence
+        if session['signs']:
+            confidences = [sign['confidence'] for sign in session['signs'] if sign['confidence'] > 0]
+            session['overall_confidence'] = sum(confidences) / len(confidences) if confidences else 0.0
+        else:
+            session['overall_confidence'] = 0.0
+        
+        print(f"Session {session_id} updated: {len(session['signs'])} signs, sentence: '{session['sentence']}'")
+        
+        # Clean up session if final (optional - you might want to keep it for a while)
+        if is_final:
+            # You could clean up the session after some time or keep it for reference
+            session['is_complete'] = True
+            session['completed_at'] = datetime.utcnow()
+        
+        return session
+        
+    except Exception as e:
+        print(f"Error managing sign session: {e}")
+        traceback.print_exc()
+        return {
+            'signs': [],
+            'sentence': '',
+            'overall_confidence': 0.0,
+            'error': str(e)
+        }
+
+#---------------------------SESSION MANAGEMENT ROUTES-----------------------------------
+@bp.route('/session-info/<session_id>', methods=['GET'])
+def get_session_info(session_id):
+    """Get information about a specific sign recording session."""
+    print(f"=== GET SESSION INFO DEBUG ===")
+    print(f"Requested session: {session_id}")
+    print(f"Active sessions: {list(sign_sessions.keys())}")
     
-    # Validate configuration
-    validation = {
-        'total_landmarks_correct': (HAND_NUM * 2 + POSE_NUM + FACE_NUM) == (TOTAL_LANDMARKS - 1),  # -1 for padding
-        'pose_indices_valid': all(0 <= idx < 33 for idx in filtered_pose),
-        'face_indices_valid': all(0 <= idx < 468 for idx in filtered_face),
-        'config_matches_notebook': True  # We'll assume it matches since we synced it
-    }
+    if session_id not in sign_sessions:
+        print(f"Session {session_id} not found")
+        return jsonify({'error': 'Session not found'}), 404
+    
+    session = sign_sessions[session_id]
+    print(f"Session found. Signs: {session['signs']}")
     
     return jsonify({
-        'configuration': config_info,
-        'validation': validation,
-        'message': 'Landmark extraction configuration for debugging',
-        'note': 'This configuration should match the training notebook exactly'
+        'session_id': session_id,
+        'signs': session['signs'],
+        'sentence': session.get('sentence', ''),
+        'total_signs': session.get('total_signs', 0),
+        'overall_confidence': session.get('overall_confidence', 0.0),
+        'created_at': session['created_at'].isoformat(),
+        'last_updated': session['last_updated'].isoformat(),
+        'is_complete': session.get('is_complete', False),
+        'completed_at': session.get('completed_at', '').isoformat() if session.get('completed_at') else None
     }), 200
+
+@bp.route('/clear-session/<session_id>', methods=['DELETE'])
+def clear_session(session_id):
+    """Clear a specific sign recording session."""
+    if session_id in sign_sessions:
+        del sign_sessions[session_id]
+        return jsonify({'message': f'Session {session_id} cleared successfully'}), 200
+    else:
+        return jsonify({'error': 'Session not found'}), 404
+
+@bp.route('/list-sessions', methods=['GET'])
+def list_sessions():
+    """List all active sign recording sessions."""
+    sessions_info = {}
+    for session_id, session in sign_sessions.items():
+        sessions_info[session_id] = {
+            'total_signs': session.get('total_signs', 0),
+            'sentence': session.get('sentence', ''),
+            'overall_confidence': session.get('overall_confidence', 0.0),
+            'created_at': session['created_at'].isoformat(),
+            'last_updated': session['last_updated'].isoformat(),
+            'is_complete': session.get('is_complete', False)
+        }
+    
+    return jsonify({
+        'active_sessions': len(sign_sessions),
+        'sessions': sessions_info
+    }), 200
+
+@bp.route('/remove-last-word-from-session/<session_id>', methods=['DELETE'])
+def remove_last_word_from_session(session_id):
+    """Remove the last word from a sign recording session."""
+    print(f"=== REMOVE LAST WORD DEBUG ===")
+    print(f"Attempting to remove last word from session {session_id}")
+    print(f"Active sessions: {list(sign_sessions.keys())}")
+    
+    if session_id not in sign_sessions:
+        print(f"Session {session_id} not found in active sessions")
+        return jsonify({'error': 'Session not found'}), 404
+    
+    session = sign_sessions[session_id]
+    print(f"Session found. Current signs: {session['signs']}")
+    
+    if not session['signs']:
+        print("No signs to remove")
+        return jsonify({'error': 'No words in session to remove'}), 400
+    
+    # Find the sign with the highest sequence number (last word)
+    last_sign = max(session['signs'], key=lambda x: x['sequence_number'])
+    last_sequence_number = last_sign['sequence_number']
+    
+    print(f"Removing last word: {last_sign}")
+    
+    # Remove the last sign
+    session['signs'] = [sign for sign in session['signs'] if sign['sequence_number'] != last_sequence_number]
+    print(f"Signs after removal: {session['signs']}")
+    
+    # Update session metadata
+    session['last_updated'] = datetime.utcnow()
+    session['total_signs'] = len(session['signs'])
+    
+    # Regenerate sentence from remaining signs
+    words = [sign['word'] for sign in session['signs'] if sign['word'] not in ['unknown', 'error']]
+    all_words = [sign['word'] for sign in session['signs']]
+    
+    # Update sentences
+    if words:
+        session['raw_sentence'] = ' '.join(words)
+        session['sentence'] = ' '.join(words)  # Simple sentence for now
+        session['gpt_sentence'] = None  # Clear GPT sentence since words changed
+    else:
+        session['raw_sentence'] = ''
+        session['sentence'] = ''
+        session['gpt_sentence'] = None
+    
+    # Recalculate overall confidence
+    if session['signs']:
+        confidences = [sign['confidence'] for sign in session['signs'] if sign['confidence'] > 0]
+        session['overall_confidence'] = sum(confidences) / len(confidences) if confidences else 0.0
+    else:
+        session['overall_confidence'] = 0.0
+    
+    # Mark session as incomplete if it was marked as complete
+    if session.get('is_complete'):
+        session['is_complete'] = False
+        session.pop('completed_at', None)
+    
+    print(f"Removed last word from session {session_id}")
+    print(f"Updated sentence: '{session['sentence']}'")
+    
+    return jsonify({
+        'message': f'Last word "{last_sign["word"]}" removed successfully',
+        'session_id': session_id,
+        'signs': session['signs'],
+        'sentence': session.get('sentence', ''),
+        'raw_sentence': session.get('raw_sentence', ''),
+        'total_signs': session.get('total_signs', 0),
+        'overall_confidence': session.get('overall_confidence', 0.0),
+        'words': words,
+        'removed_word': last_sign['word']
+    }), 200
+
+#---------------------------REGENERATE SENTENCE-----------------------------------
+@bp.route('/regenerate-sentence/<session_id>', methods=['POST'])
+def regenerate_sentence(session_id):
+    """Regenerate GPT sentence from current words in session."""
+    if session_id not in sign_sessions:
+        return jsonify({'error': 'Session not found'}), 404
+    
+    session = sign_sessions[session_id]
+    
+    # Get current valid words from session
+    words = [sign['word'] for sign in session['signs'] if sign['word'] not in ['unknown', 'error']]
+    
+    if not words:
+        return jsonify({'error': 'No valid words in session to generate sentence'}), 400
+    
+    try:
+        # Generate new GPT sentence
+        gpt_sentence = sign_words_to_sentence_with_gpt(words)
+        raw_sentence = ' '.join(words)
+        
+        # Update session with new sentences
+        session['gpt_sentence'] = gpt_sentence
+        session['raw_sentence'] = raw_sentence
+        session['sentence'] = gpt_sentence
+        session['last_updated'] = datetime.utcnow()
+        
+        return jsonify({
+            'message': 'Sentence regenerated successfully',
+            'session_id': session_id,
+            'gpt_sentence': gpt_sentence,
+            'raw_sentence': raw_sentence,
+            'complete_sentence': gpt_sentence,
+            'words': words,
+            'is_final': True
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to regenerate sentence: {str(e)}'}), 500
