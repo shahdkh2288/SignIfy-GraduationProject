@@ -27,7 +27,7 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
 
   Future<void> _fetchCurrentPreferences() async {
     final notifier = ref.read(sttSettingsProvider.notifier);
-    
+
     final prefs = await notifier.getCurrentSTTPreferences();
     if (prefs != null) {
       setState(() {
@@ -66,7 +66,11 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
                 alignment: Alignment.centerLeft,
                 padding: EdgeInsets.zero,
                 onPressed: () => Navigator.pop(context),
-                icon: Image.asset('assets/images/back.png', height: 36, width: 36),
+                icon: Image.asset(
+                  'assets/images/back.png',
+                  height: 36,
+                  width: 36,
+                ),
               ),
               const SizedBox(height: 15),
               const Text(
@@ -109,7 +113,10 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
                   child: DropdownButton<String>(
                     value: _selectedLanguage,
                     isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF005FCE)),
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF005FCE),
+                    ),
                     style: const TextStyle(
                       fontFamily: 'LeagueSpartan',
                       fontWeight: FontWeight.bold,
@@ -118,12 +125,72 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
                     ),
                     dropdownColor: Colors.white,
                     items: const [
-                      DropdownMenuItem(value: 'en', child: Text('English', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold))),
-                      DropdownMenuItem(value: 'ar', child: Text('Arabic', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold))),
-                      DropdownMenuItem(value: 'es', child: Text('Spanish', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold))),
-                      DropdownMenuItem(value: 'fr', child: Text('French', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold))),
-                      DropdownMenuItem(value: 'de', child: Text('German', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold))),
-                      DropdownMenuItem(value: 'it', child: Text('Italian', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold))),
+                      DropdownMenuItem(
+                        value: 'en',
+                        child: Text(
+                          'English',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'ar',
+                        child: Text(
+                          'Arabic',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'es',
+                        child: Text(
+                          'Spanish',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'fr',
+                        child: Text(
+                          'French',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'de',
+                        child: Text(
+                          'German',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'it',
+                        child: Text(
+                          'Italian',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -153,33 +220,39 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
                         onTap: () {
                           showDialog(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text(
-                                'What is Smart Format?',
-                                style: TextStyle(
-                                  fontFamily: 'LeagueSpartan',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22,
-                                  color: Color(0xFF005FCE),
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text(
+                                    'What is Smart Format?',
+                                    style: TextStyle(
+                                      fontFamily: 'LeagueSpartan',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                      color: Color(0xFF005FCE),
+                                    ),
+                                  ),
+                                  content: const Text(
+                                    'Smart Format automatically adds punctuation and capitalization to your transcribed speech.',
+                                    style: TextStyle(
+                                      fontFamily: 'LeagueSpartan',
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(context).pop(),
+                                      child: const Text('Got it!'),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              content: const Text(
-                                'Smart Format automatically adds punctuation and capitalization to your transcribed speech.',
-                                style: TextStyle(
-                                  fontFamily: 'LeagueSpartan',
-                                  fontSize: 18,
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Close'),
-                                ),
-                              ],
-                            ),
                           );
                         },
-                        child: const Icon(Icons.info_outline, color: Color(0xFF005FCE), size: 26),
+                        child: const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF005FCE),
+                          size: 26,
+                        ),
                       ),
                     ],
                   ),
@@ -217,33 +290,39 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
                         onTap: () {
                           showDialog(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text(
-                                'What is Profanity Filter?',
-                                style: TextStyle(
-                                  fontFamily: 'LeagueSpartan',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22,
-                                  color: Color(0xFF005FCE),
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text(
+                                    'What is Profanity Filter?',
+                                    style: TextStyle(
+                                      fontFamily: 'LeagueSpartan',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                      color: Color(0xFF005FCE),
+                                    ),
+                                  ),
+                                  content: const Text(
+                                    'Profanity Filter censors or removes inappropriate language from your transcribed speech.',
+                                    style: TextStyle(
+                                      fontFamily: 'LeagueSpartan',
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(context).pop(),
+                                      child: const Text('Got it!'),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              content: const Text(
-                                'Profanity Filter censors or removes inappropriate language from your transcribed speech.',
-                                style: TextStyle(
-                                  fontFamily: 'LeagueSpartan',
-                                  fontSize: 18,
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Close'),
-                                ),
-                              ],
-                            ),
                           );
                         },
-                        child: const Icon(Icons.info_outline, color: Color(0xFF005FCE), size: 26),
+                        child: const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF005FCE),
+                          size: 26,
+                        ),
                       ),
                     ],
                   ),
@@ -265,14 +344,19 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
               if (_showSuccess)
                 const Text(
                   'Updated successfully',
-                  style: TextStyle(color: Colors.green, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               sttState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text(
-                  e.toString(),
-                  style: const TextStyle(color: Colors.red),
-                ),
+                error:
+                    (e, _) => Text(
+                      e.toString(),
+                      style: const TextStyle(color: Colors.red),
+                    ),
                 data: (data) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 70),
@@ -283,16 +367,19 @@ class _STTSettingsScreenState extends ConsumerState<STTSettingsScreen> {
                     width: 240,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: sttState.isLoading
-                          ? null
-                          : () async {
-                              await ref.read(sttSettingsProvider.notifier).updateSTTSettings(
-                                    language: _selectedLanguage,
-                                    smartFormat: _smartFormat,
-                                    profanityFilter: _profanityFilter,
-                                  );
-                              _showSuccessMessage();
-                            },
+                      onPressed:
+                          sttState.isLoading
+                              ? null
+                              : () async {
+                                await ref
+                                    .read(sttSettingsProvider.notifier)
+                                    .updateSTTSettings(
+                                      language: _selectedLanguage,
+                                      smartFormat: _smartFormat,
+                                      profanityFilter: _profanityFilter,
+                                    );
+                                _showSuccessMessage();
+                              },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF005FCE),
                         shape: RoundedRectangleBorder(

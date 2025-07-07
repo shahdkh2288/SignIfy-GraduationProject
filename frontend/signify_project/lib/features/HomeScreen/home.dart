@@ -241,15 +241,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blue.shade100,
-                    child: const Icon(
-                      Icons.person,
-                      size: 80,
-                      color: Color(0xFF005FCE),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 30),
@@ -319,9 +310,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                 'TTS service returned file path: $filePath',
                                               );
                                               if (filePath != null) {
-                                                await _playAudioFromFile(
-                                                  filePath,
-                                                );
+                                                try {
+                                                  await _playAudioFromFile(
+                                                    filePath,
+                                                  );
+                                                } catch (e) {
+                                                  print(
+                                                    'Audio playback failed: $e',
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Audio playback failed: ${e.toString()}',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
                                               } else {
                                                 print(
                                                   'TTS service returned null file path',
@@ -331,7 +337,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                 ).showSnackBar(
                                                   const SnackBar(
                                                     content: Text(
-                                                      'Failed to generate audio',
+                                                      'Failed to generate audio. Please check your connection and try again.',
                                                     ),
                                                   ),
                                                 );

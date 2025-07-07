@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signify_project/services/tts_preferences.dart';
@@ -11,8 +12,22 @@ class TTSSettingsScreen extends ConsumerStatefulWidget {
 
 class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
   String _selectedVoiceId = 'female';
-  double _stability = 0.5; 
-  bool _showSuccess = false; 
+  double _stability = 0.5;
+  bool _showSuccess = false;
+
+  String _getStabilityDescription() {
+    if (_stability <= 0.2) {
+      return "Maximum emotion - Very expressive and natural tone";
+    } else if (_stability <= 0.4) {
+      return "High emotion - Expressive with some variation";
+    } else if (_stability <= 0.6) {
+      return "Balanced - Good mix of emotion and clarity";
+    } else if (_stability <= 0.8) {
+      return "High clarity - Consistent and stable pronunciation";
+    } else {
+      return "Maximum clarity - Very stable and clear speech";
+    }
+  }
 
   @override
   void initState() {
@@ -43,13 +58,16 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              
               const SizedBox(height: 24),
               IconButton(
                 alignment: Alignment.centerLeft,
-                padding: EdgeInsets.zero, 
+                padding: EdgeInsets.zero,
                 onPressed: () => Navigator.pop(context),
-                icon: Image.asset('assets/images/back.png', height: 36, width: 36),
+                icon: Image.asset(
+                  'assets/images/back.png',
+                  height: 36,
+                  width: 36,
+                ),
               ),
               const SizedBox(height: 15),
               const Text(
@@ -80,34 +98,51 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
               ),
               const SizedBox(height: 8),
               Container(
-                height: 60, 
+                height: 60,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(0xFF005FCE), width: 2.2), 
+                  border: Border.all(color: Color(0xFF005FCE), width: 2.2),
                 ),
                 alignment: Alignment.centerLeft,
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedVoiceId,
                     isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF005FCE)),
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Color(0xFF005FCE),
+                    ),
                     style: const TextStyle(
                       fontFamily: 'LeagueSpartan',
                       fontWeight: FontWeight.bold,
-                      fontSize: 24, 
+                      fontSize: 24,
                       color: Color(0xFF005FCE),
                     ),
                     dropdownColor: Colors.white,
                     items: const [
                       DropdownMenuItem(
                         value: 'female',
-                        child: Text('Female', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Female',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'male',
-                        child: Text('Male', style: TextStyle(color: Color(0xFF005FCE), fontSize: 24, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Male',
+                          style: TextStyle(
+                            color: Color(0xFF005FCE),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                     onChanged: (value) {
@@ -122,7 +157,7 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
               Row(
                 children: [
                   const Text(
-                    'Stability',
+                    'Emotion vs Clearness',
                     style: TextStyle(
                       fontFamily: 'LeagueSpartan',
                       fontWeight: FontWeight.bold,
@@ -135,65 +170,103 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
                     onTap: () {
                       showDialog(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text(
-                            'What is Stability?',
-                            style: TextStyle(
-                              fontFamily: 'LeagueSpartan',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 22,
-                              color: Color(0xFF005FCE),
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text(
+                                'Emotion vs Clearness',
+                                style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 22,
+                                  color: Color(0xFF005FCE),
+                                ),
+                              ),
+                              content: const Text(
+                                'This setting controls the balance between emotional expression and speech clarity:\n\n'
+                                '• Move toward "Emotion" for more expressive, natural-sounding speech with varied tone\n\n'
+                                '• Move toward "Clearness" for more consistent, stable pronunciation that\'s easier to understand\n\n'
+                                'Find the balance that works best for you!',
+                                style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
+                                  fontSize: 18,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('Got it!'),
+                                ),
+                              ],
                             ),
-                          ),
-                          content: const Text(
-                            'Stability controls how consistent the voice sounds. '
-                            'A higher value means the voice will sound more stable and less expressive. '
-                            'A lower value allows for more variation and expressiveness in the speech.',
-                            style: TextStyle(
-                              fontFamily: 'LeagueSpartan',
-                              fontSize: 18,
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Close'),
-                            ),
-                          ],
-                        ),
                       );
                     },
-                    child: const Icon(Icons.info_outline, color: Color(0xFF005FCE), size: 28),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF005FCE),
+                      size: 28,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: const Color(0xFF005FCE),
-                        inactiveTrackColor: const Color(0xFFE3F1FB),
-                        thumbColor: const Color(0xFF005FCE),
-                        overlayColor: const Color(0x33005FCE),
-                        trackHeight: 5,
+                  Row(
+                    children: [
+                      const Text(
+                        'Emotion',
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 16,
+                          color: Color(0xFF005FCE),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      child: Slider(
-                        value: _stability.clamp(0.0, 1.0),
-                        min: 0.0,
-                        max: 1.0,
-                        divisions: 20,
-                        label: _stability.toStringAsFixed(2),
-                        onChanged: (value) {
-                          setState(() {
-                            _stability = value;
-                          });
-                        },
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            activeTrackColor: const Color(0xFF005FCE),
+                            inactiveTrackColor: const Color(0xFFE3F1FB),
+                            thumbColor: const Color(0xFF005FCE),
+                            overlayColor: const Color(0x33005FCE),
+                            trackHeight: 5,
+                          ),
+                          child: Slider(
+                            value: _stability.clamp(0.0, 1.0),
+                            min: 0.0,
+                            max: 1.0,
+                            divisions: 20,
+                            label: _stability.toStringAsFixed(2),
+                            onChanged: (value) {
+                              setState(() {
+                                _stability = value;
+                              });
+                            },
+                          ),
+                        ),
                       ),
+                      const Text(
+                        'Clearness',
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 16,
+                          color: Color(0xFF005FCE),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _getStabilityDescription(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 16,
+                      color: Colors.black54,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-                  
                 ],
               ),
               Center(
@@ -209,21 +282,43 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
               ),
               const SizedBox(height: 24),
               if (_showSuccess)
-                Center(
-                  child: Text(
-                    'Preferences updated successfully!',
-                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade300),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Preferences updated successfully!',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'LeagueSpartan',
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ttsState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text(
-                  e.toString(),
-                  style: const TextStyle(color: Colors.red),
-                ),
+                error:
+                    (e, _) => Text(
+                      e.toString(),
+                      style: const TextStyle(color: Colors.red),
+                    ),
                 data: (data) => const SizedBox.shrink(),
               ),
-              const SizedBox(height: 70), 
+              const SizedBox(height: 70),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -231,18 +326,31 @@ class _TTSSettingsScreenState extends ConsumerState<TTSSettingsScreen> {
                     width: 240,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: ttsState.isLoading
-                          ? null
-                          : () async {
-                              await ref.read(ttsSettingsProvider.notifier).updateTTSSettings(
-                                selectedVoiceId: _selectedVoiceId,
-                                stability: _stability,
-                              );
-                              setState(() {
-                                _showSuccess = true; 
-                              });
-                              await _loadPreferences(); 
-                            },
+                      onPressed:
+                          ttsState.isLoading
+                              ? null
+                              : () async {
+                                await ref
+                                    .read(ttsSettingsProvider.notifier)
+                                    .updateTTSSettings(
+                                      selectedVoiceId: _selectedVoiceId,
+                                      stability: _stability,
+                                    );
+                                setState(() {
+                                  _showSuccess = true;
+                                });
+
+                                // Auto-hide success message after 3 seconds
+                                Timer(const Duration(seconds: 3), () {
+                                  if (mounted) {
+                                    setState(() {
+                                      _showSuccess = false;
+                                    });
+                                  }
+                                });
+
+                                await _loadPreferences();
+                              },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF005FCE),
                         shape: RoundedRectangleBorder(

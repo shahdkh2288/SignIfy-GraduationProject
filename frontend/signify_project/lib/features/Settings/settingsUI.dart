@@ -14,31 +14,18 @@ class SettingsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 18),
-              
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 44,
-                      color: Color(0xFF005FCE),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Image.asset(
-                      'assets/images/notifications.png',
-                      height: 44,
-                      width: 44,
-                    ),
-                    onPressed: () {},
-                  ),
-                ],
+
+              const Text(
+                'Settings',
+                style: TextStyle(
+                  fontFamily: 'LeagueSpartan',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 44,
+                  color: Color(0xFF005FCE),
+                ),
               ),
               const SizedBox(height: 80),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -53,8 +40,8 @@ class SettingsScreen extends StatelessWidget {
                   _SettingsButton(
                     label: 'Speech-to-Text',
                     iconPath: 'assets/images/micro2.png',
-                    iconWidth: 80,  
-                    iconHeight: 80,  
+                    iconWidth: 80,
+                    iconHeight: 80,
                     onTap: () {
                       Navigator.pushNamed(context, '/stt-settings');
                     },
@@ -185,12 +172,7 @@ class _SettingsButton extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 fontSize: 23,
                 color: Color(0xFF005FCE),
-                shadows: [
-                  Shadow(
-                    color: Colors.white,
-                    blurRadius: 1,
-                  ),
-                ],
+                shadows: [Shadow(color: Colors.white, blurRadius: 1)],
               ),
             ),
           ],

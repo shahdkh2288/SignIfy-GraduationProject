@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signify_project/services/userProfile.dart';
+import 'package:signify_project/config/network_config.dart';
 
 class ViewProfileScreen extends ConsumerWidget {
   const ViewProfileScreen({super.key});
@@ -24,14 +25,13 @@ class ViewProfileScreen extends ConsumerWidget {
               ),
             ),
         data: (user) {
-          final String baseUrl = 'http://192.168.1.3:5000';
           final String? profileImageUrl =
               (user.profileImage.isNotEmpty)
                   ? (user.profileImage.startsWith('http')
                       ? user.profileImage
                       : user.profileImage.startsWith('/')
-                      ? '$baseUrl${user.profileImage}'
-                      : '$baseUrl/${user.profileImage}')
+                      ? '${NetworkConfig.baseUrl}${user.profileImage}'
+                      : '${NetworkConfig.baseUrl}/${user.profileImage}')
                   : null;
 
           return Column(
@@ -331,7 +331,7 @@ class _ProfileRow extends StatelessWidget {
           ),
           if (value.isNotEmpty)
             Expanded(
-              flex: 3,
+              flex: 4,
               child: Text(
                 value,
                 style: const TextStyle(
@@ -341,7 +341,7 @@ class _ProfileRow extends StatelessWidget {
                   color: Color(0xFF3B8EDB),
                 ),
                 textAlign: TextAlign.right,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),

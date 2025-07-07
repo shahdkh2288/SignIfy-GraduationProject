@@ -428,7 +428,7 @@ class _SessionBasedVideoScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'GPT Enhanced Sentence:',
+                  'Enhanced Sentence:',
                   style: TextStyle(
                     fontFamily: 'LeagueSpartan',
                     fontSize: 14,
@@ -659,7 +659,7 @@ class _SessionBasedVideoScreenState
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Sequential Sign Recording',
+          'Sign Recording',
           style: TextStyle(
             fontFamily: 'LeagueSpartan',
             fontWeight: FontWeight.bold,

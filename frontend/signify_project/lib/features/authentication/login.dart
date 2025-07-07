@@ -28,7 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 20),
-              Center(child: Image.asset('assets/images/logo2.png', height: 130)),
+              Center(
+                child: Image.asset('assets/images/logo2.png', height: 130),
+              ),
               SizedBox(height: 8),
               Text.rich(
                 TextSpan(
@@ -201,7 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     _isLoading = false;
                                   });
                                   if (result['success'] == true) {
-                                    
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Login successful!'),
@@ -249,51 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                     ),
-                    SizedBox(height: 68),
-                    Center(
-                      child: Text(
-                        'Or Login With',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontFamily: 'LeagueSpartan',
-                          color: Color(0xFF005FCE),
-                          fontWeight: FontWeight.w100,
-                          shadows: [
-                            Shadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              offset: Offset(1.5, 1.5),
-                              blurRadius: 2.0,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: () {},
-                          child: Image.asset(
-                            'assets/images/googleIcon.png',
-                            height: 50,
-                            width: 50,
-                          ),
-                        ),
-                        SizedBox(width: 30),
-                        GestureDetector(
-                          onTap: () {
-                            // icloud login
-                          },
-                          child: Image.asset(
-                            'assets/images/icloudIcon.png',
-                            height: 50,
-                            width: 50,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 65),
+                    SizedBox(height: 80),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

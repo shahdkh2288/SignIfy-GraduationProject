@@ -49,7 +49,7 @@ class TTSSettingsNotifier
     try {
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'access_token');
-      final url = Uri.parse('http://10.0.2.2:5000/get-tts-preferences');
+      final url = Uri.parse('${NetworkConfig.baseUrl}/get-tts-preferences');
       final response = await http.get(
         url,
         headers: {
