@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:signify_project/services/tts_service.dart';
 import 'package:signify_project/services/stt_service.dart';
+import 'package:signify_project/services/userProfile.dart' as user_service;
 import 'package:record/record.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'home_providers.dart';
+import '../SignDetection/session_based_video_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -28,7 +30,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _controller = TextEditingController(text: ref.read(inputTextProvider));
     _player = AudioPlayer();
 
-    // Configure audio player
     _configureAudioPlayer();
 
     _controller.addListener(() {
@@ -40,15 +41,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _configureAudioPlayer() async {
     try {
-      // Set audio context for Android with more aggressive settings
       await _player.setAudioContext(
         AudioContext(
           android: AudioContextAndroid(
             isSpeakerphoneOn: true,
             stayAwake: true,
-            contentType: AndroidContentType.speech, // Changed to speech
+            contentType: AndroidContentType.speech,
             usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gainTransient, // Changed to transient
+            audioFocus: AndroidAudioFocus.gainTransient,
           ),
           iOS: AudioContextIOS(
             category: AVAudioSessionCategory.playback,
@@ -132,7 +132,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       print('Attempting to play audio from file: $filePath');
 
-      // Check if file exists and get its size
       final file = File(filePath);
       if (await file.exists()) {
         final fileSize = await file.length();
@@ -142,26 +141,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      // Stop any current playback
       if (_player.state == PlayerState.playing) {
         await _player.stop();
       }
 
-      // Small delay to ensure cleanup
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Set volume to maximum
       await _player.setVolume(1.0);
 
-      // Set player mode to media (important for Android)
       await _player.setPlayerMode(PlayerMode.mediaPlayer);
 
-      // Play the audio directly
       await _player.play(DeviceFileSource(filePath));
 
       print('Audio playback started successfully from local file');
 
-      // Listen for player state changes (but don't create multiple listeners)
       _player.onPlayerStateChanged.take(5).listen((PlayerState state) {
         print('Player state changed to: $state');
         if (state == PlayerState.playing) {
@@ -171,12 +164,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       });
 
-      // Listen for completion
       _player.onPlayerComplete.take(1).listen((event) {
         print('Audio playback completed');
       });
 
-      // Listen for duration
       _player.onDurationChanged.take(1).listen((Duration duration) {
         print('Audio duration: ${duration.inMilliseconds}ms');
       });
@@ -190,7 +181,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userName = ref.watch(userNameProvider);
+    final userProfileAsync = ref.watch(user_service.userProfileProvider);
     final inputText = ref.watch(inputTextProvider);
     final isLoading = ref.watch(isLoadingProvider);
     final sttText = ref.watch(sttTextProvider);
@@ -214,197 +205,259 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Hi, ${userName.isNotEmpty ? userName : "User"}',
-                        style: const TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'LeagueSpartan',
-                          color: Color(0xFF005FCE),
-                        ),
+                      userProfileAsync.when(
+                        data:
+                            (user) => Text(
+                              user.fullname.isNotEmpty
+                                  ? 'Hi, ${user.fullname.split(' ')[0]}'
+                                  : 'Hi, User',
+                              style: const TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LeagueSpartan',
+                                color: Color(0xFF005FCE),
+                              ),
+                            ),
+                        loading:
+                            () => const Text(
+                              'Hi, User',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LeagueSpartan',
+                                color: Color(0xFF005FCE),
+                              ),
+                            ),
+                        error:
+                            (_, __) => const Text(
+                              'Hi, User',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LeagueSpartan',
+                                color: Color(0xFF005FCE),
+                              ),
+                            ),
                       ),
                     ],
-                  ),
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blue.shade100,
-                    child: const Icon(
-                      Icons.person,
-                      size: 80,
-                      color: Color(0xFF005FCE),
-                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 30),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text(
+                        'Voice it',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005FCE),
+                          fontFamily: 'LeagueSpartan',
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 180,
+                      child: Card(
+                        color: Colors.blue.shade50,
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon:
+                                        isLoading
+                                            ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                            : const Icon(Icons.volume_up),
+                                    onPressed:
+                                        inputText.isEmpty || isLoading
+                                            ? null
+                                            : () async {
+                                              print(
+                                                'TTS button pressed with text: $inputText',
+                                              );
+                                              ref
+                                                  .read(
+                                                    isLoadingProvider.notifier,
+                                                  )
+                                                  .state = true;
+                                              final filePath =
+                                                  await TTSService.getTtsAudioDirect(
+                                                    inputText,
+                                                  );
+                                              ref
+                                                  .read(
+                                                    isLoadingProvider.notifier,
+                                                  )
+                                                  .state = false;
 
-              // Input Card
-              SizedBox(
-                height: 180,
-                child: Card(
-                  color: Colors.blue.shade50,
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Stack(
-                      children: [
-                        Column(
-                          children: [
-                            Expanded(
-                              child: Scrollbar(
-                                thumbVisibility: true,
-                                child: TextField(
-                                  maxLength: 750,
-                                  maxLines: null,
-                                  expands: true,
-                                  controller: _controller,
-                                  decoration: const InputDecoration(
-                                    hintText: "Enter text here...",
-                                    border: InputBorder.none,
-                                    counterText: '',
+                                              print(
+                                                'TTS service returned file path: $filePath',
+                                              );
+                                              if (filePath != null) {
+                                                try {
+                                                  await _playAudioFromFile(
+                                                    filePath,
+                                                  );
+                                                } catch (e) {
+                                                  print(
+                                                    'Audio playback failed: $e',
+                                                  );
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Audio playback failed: ${e.toString()}',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              } else {
+                                                print(
+                                                  'TTS service returned null file path',
+                                                );
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Failed to generate audio. Please check your connection and try again.',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      ref
+                                          .read(inputTextProvider.notifier)
+                                          .state = '';
+                                      _controller.clear();
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Expanded(
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: TextField(
+                                    maxLength: 750,
+                                    maxLines: null,
+                                    expands: true,
+                                    controller: _controller,
+                                    decoration: const InputDecoration(
+                                      hintText: "Enter text here...",
+                                      border: InputBorder.none,
+                                      counterText: '',
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: Text(
-                                '${inputText.length}/750',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  '${inputText.length}/750',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon:
-                                    isLoading
-                                        ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                        : const Icon(Icons.volume_up),
-                                onPressed:
-                                    inputText.isEmpty || isLoading
-                                        ? null
-                                        : () async {
-                                          print(
-                                            'TTS button pressed with text: $inputText',
-                                          );
-                                          ref
-                                              .read(isLoadingProvider.notifier)
-                                              .state = true;
-                                          final filePath =
-                                              await TTSService.getTtsAudioDirect(
-                                                inputText,
-                                              );
-                                          ref
-                                              .read(isLoadingProvider.notifier)
-                                              .state = false;
-
-                                          print(
-                                            'TTS service returned file path: $filePath',
-                                          );
-                                          if (filePath != null) {
-                                            await _playAudioFromFile(filePath);
-                                          } else {
-                                            print(
-                                              'TTS service returned null file path',
-                                            );
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Failed to generate audio',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  ref.read(inputTextProvider.notifier).state =
-                                      '';
-                                  _controller.clear();
-                                },
                               ),
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-
-              // STT Card
-              SizedBox(
-                height: 180,
-                child: Card(
-                  color: Colors.blue.shade50,
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Stack(
-                      children: [
-                        Column(
-                          children: [
-                            Expanded(
-                              child: Scrollbar(
-                                thumbVisibility: true,
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    sttText,
-                                    style: const TextStyle(fontSize: 16),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text(
+                        'Turn Voice to Words',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF005FCE),
+                          fontFamily: 'LeagueSpartan',
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 180,
+                      child: Card(
+                        color: Colors.blue.shade50,
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      ref.read(sttTextProvider.notifier).state =
+                                          '';
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Expanded(
+                                child: Scrollbar(
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      sttText,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: Text(
-                                '${sttText.length}/750',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: Text(
+                                  '${sttText.length}/750',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              ref.read(sttTextProvider.notifier).state = '';
-                            },
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 80),
-
+              const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -422,7 +475,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   InkWell(
-                    onTap: () {},
+                    onTap: () async {
+                      // Navigate to session-based video recording screen
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SessionBasedVideoScreen(),
+                        ),
+                      );
+
+                      // If user selected a word, add it to the input text
+                      if (result != null && result is String) {
+                        final currentText = ref.read(inputTextProvider);
+                        final newText =
+                            currentText.isEmpty
+                                ? result
+                                : '$currentText $result';
+                        ref.read(inputTextProvider.notifier).state = newText;
+                        _controller.text = newText;
+                        _controller.selection = TextSelection.collapsed(
+                          offset: newText.length,
+                        );
+                      }
+                    },
                     borderRadius: BorderRadius.circular(40),
                     child: CircleAvatar(
                       radius: 55,

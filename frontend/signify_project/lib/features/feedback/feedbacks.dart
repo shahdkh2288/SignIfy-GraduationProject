@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../config/network_config.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -37,7 +38,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     if (jwt == null) return;
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/protected'),
+        Uri.parse('${NetworkConfig.baseUrl}/protected'),
         headers: {'Authorization': 'Bearer $jwt'},
       );
       if (response.statusCode == 200) {
@@ -71,15 +72,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         return;
       }
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/submit-feedback'),
+        Uri.parse('${NetworkConfig.baseUrl}/submit-feedback'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwt',
         },
-        body: jsonEncode({
-          'stars': _stars,
-          'feedback_text': _feedbackText,
-        }),
+        body: jsonEncode({'stars': _stars, 'feedback_text': _feedbackText}),
       );
       if (response.statusCode == 201) {
         setState(() {
@@ -94,7 +92,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           _message = null;
         });
       } else {
-        final error = jsonDecode(response.body)['error'] ?? 'Failed to submit feedback';
+        final error =
+            jsonDecode(response.body)['error'] ?? 'Failed to submit feedback';
         setState(() {
           _isLoading = false;
           _message = error;
@@ -110,7 +109,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
     if (_feedbackController.text != _feedbackText) {
       _feedbackController.value = TextEditingValue(
         text: _feedbackText,
@@ -127,6 +125,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
+              IconButton(
+                alignment: Alignment.centerLeft,
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.pop(context),
+                icon: Image.asset(
+                  'assets/images/back.png',
+                  height: 36,
+                  width: 36,
+                ),
+              ),
+              const SizedBox(height: 15),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -134,10 +143,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        
                         Builder(
                           builder: (context) {
-                            String firstName = (_userName ?? '').split(' ').first;
+                            String firstName =
+                                (_userName ?? '').split(' ').first;
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -145,7 +154,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   'Hi,',
                                   style: const TextStyle(
                                     fontSize: 48,
-                                    fontWeight: FontWeight.w900, 
+                                    fontWeight: FontWeight.w900,
                                     fontFamily: 'LeagueSpartan',
                                     color: Color(0xFF005FCE),
                                   ),
@@ -155,7 +164,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   firstName,
                                   style: const TextStyle(
                                     fontSize: 48,
-                                    fontWeight: FontWeight.w900, 
+                                    fontWeight: FontWeight.w900,
                                     fontFamily: 'LeagueSpartan',
                                     color: Color(0xFF005FCE),
                                   ),
@@ -170,7 +179,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 ],
               ),
               const SizedBox(height: 40),
-              
+
               Text(
                 "Let’s Make Signify Better Together!",
                 textAlign: TextAlign.left,
@@ -189,7 +198,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 ),
               ),
               const SizedBox(height: 38),
-              
+
               const Text(
                 "Rating",
                 style: TextStyle(
@@ -200,7 +209,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(5, (index) {
@@ -221,11 +230,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               const SizedBox(height: 37),
               const Text(
                 "Description",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25, color: Color(0xFF005FCE), fontFamily: 'LeagueSpartan'),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 25,
+                  color: Color(0xFF005FCE),
+                  fontFamily: 'LeagueSpartan',
+                ),
               ),
               const SizedBox(height: 25),
               SizedBox(
-                height: 120, 
+                height: 120,
                 child: Card(
                   color: Colors.blue.shade50,
                   elevation: 2,
@@ -248,8 +262,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                     border: InputBorder.none,
                                     counterText: '',
                                   ),
-                                  onChanged: (val) => setState(() => _feedbackText = val),
-                                  style: const TextStyle(fontSize: 16, fontFamily: 'LeagueSpartan'),
+                                  onChanged:
+                                      (val) =>
+                                          setState(() => _feedbackText = val),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontFamily: 'LeagueSpartan',
+                                  ),
                                   textAlign: TextAlign.left,
                                   textDirection: TextDirection.ltr,
                                 ),
@@ -277,7 +296,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 Text(
                   _message!,
                   style: TextStyle(
-                    color: _message!.contains('success') ? Colors.green : Colors.red,
+                    color:
+                        _message!.contains('success')
+                            ? Colors.green
+                            : Colors.red,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -294,15 +316,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       fontWeight: FontWeight.bold,
                       fontFamily: 'LeagueSpartan',
                     ),
-                    foregroundColor: Colors.white, 
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 2,
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Submit'),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Submit'),
                 ),
               ),
               const SizedBox(height: 16),
@@ -369,4 +392,3 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 }
-

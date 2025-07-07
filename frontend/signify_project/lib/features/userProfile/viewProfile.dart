@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signify_project/services/userProfile.dart';
+import 'package:signify_project/config/network_config.dart';
 
 class ViewProfileScreen extends ConsumerWidget {
   const ViewProfileScreen({super.key});
@@ -13,19 +14,25 @@ class ViewProfileScreen extends ConsumerWidget {
       backgroundColor: Colors.white,
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-            child: Text('Error: $e',
+        error:
+            (e, _) => Center(
+              child: Text(
+                'Error: $e',
                 style: const TextStyle(
-                    fontSize: 22, fontFamily: 'LeagueSpartan'))),
+                  fontSize: 22,
+                  fontFamily: 'LeagueSpartan',
+                ),
+              ),
+            ),
         data: (user) {
-          final String baseUrl = 'http://10.0.2.2:5000';
-          final String? profileImageUrl = (user.profileImage.isNotEmpty)
-              ? (user.profileImage.startsWith('http')
-                  ? user.profileImage
-                  : user.profileImage.startsWith('/')
-                      ? '$baseUrl${user.profileImage}'
-                      : '$baseUrl/${user.profileImage}')
-              : null;
+          final String? profileImageUrl =
+              (user.profileImage.isNotEmpty)
+                  ? (user.profileImage.startsWith('http')
+                      ? user.profileImage
+                      : user.profileImage.startsWith('/')
+                      ? '${NetworkConfig.baseUrl}${user.profileImage}'
+                      : '${NetworkConfig.baseUrl}/${user.profileImage}')
+                  : null;
 
           return Column(
             children: [
@@ -39,8 +46,11 @@ class ViewProfileScreen extends ConsumerWidget {
                       alignment: Alignment.topLeft,
                       child: IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: Image.asset('assets/images/back.png',
-                            height: 50, width: 50),
+                        icon: Image.asset(
+                          'assets/images/back.png',
+                          height: 50,
+                          width: 50,
+                        ),
                       ),
                     ),
                     Align(
@@ -50,10 +60,16 @@ class ViewProfileScreen extends ConsumerWidget {
                         child: IconButton(
                           onPressed: () {
                             Navigator.pushNamedAndRemoveUntil(
-                                context, '/login', (route) => false);
+                              context,
+                              '/login',
+                              (route) => false,
+                            );
                           },
-                          icon: Image.asset('assets/images/logout.png',
-                              height: 40, width: 40),
+                          icon: Image.asset(
+                            'assets/images/logout.png',
+                            height: 40,
+                            width: 40,
+                          ),
                         ),
                       ),
                     ),
@@ -66,13 +82,18 @@ class ViewProfileScreen extends ConsumerWidget {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.blue.shade100,
-                            backgroundImage: profileImageUrl != null
-                                ? NetworkImage(profileImageUrl)
-                                : null,
-                            child: (user.profileImage.isEmpty)
-                                ? const Icon(Icons.person,
-                                    size: 80, color: Colors.blue)
-                                : null,
+                            backgroundImage:
+                                profileImageUrl != null
+                                    ? NetworkImage(profileImageUrl)
+                                    : null,
+                            child:
+                                (user.profileImage.isEmpty)
+                                    ? const Icon(
+                                      Icons.person,
+                                      size: 80,
+                                      color: Colors.blue,
+                                    )
+                                    : null,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -113,8 +134,10 @@ class ViewProfileScreen extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     const Text(
@@ -138,8 +161,10 @@ class ViewProfileScreen extends ConsumerWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 8,
+                        ),
                       ),
                       child: const Text(
                         'Edit Profile',
@@ -153,15 +178,13 @@ class ViewProfileScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Divider(
-                thickness: 3,
-                color: Colors.black87,
-                height: 0,
-              ),
+              const Divider(thickness: 3, color: Colors.black87, height: 0),
               Expanded(
                 child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 0,
+                  ),
                   children: [
                     const SizedBox(height: 18),
                     _ProfileRow(
@@ -174,8 +197,8 @@ class ViewProfileScreen extends ConsumerWidget {
                       imagePath: 'assets/images/b_email.png',
                       label: 'Email',
                       value: user.email,
-                      imageWidth: 72,
-                      imageHeight: 72,
+                      imageWidth: 45,
+                      imageHeight: 60,
                     ),
                     const SizedBox(height: 18),
                     _ProfileRow(
@@ -192,10 +215,10 @@ class ViewProfileScreen extends ConsumerWidget {
                         user.role == 'normal user'
                             ? 'assets/images/radioUser.png'
                             : user.role == 'hearing-impaired'
-                                ? 'assets/images/radioUnhear.png'
-                                : user.role == 'speech-impaired'
-                                    ? 'assets/images/radioNospeech.png'
-                                    : 'assets/images/radioUser.png',
+                            ? 'assets/images/radioUnhear.png'
+                            : user.role == 'speech-impaired'
+                            ? 'assets/images/radioNospeech.png'
+                            : 'assets/images/radioUser.png',
                         width: 64,
                         height: 64,
                       ),
@@ -294,33 +317,35 @@ class _ProfileRow extends StatelessWidget {
         children: [
           Image.asset(imagePath, width: imageWidth, height: imageHeight),
           const SizedBox(width: 16),
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-              fontFamily: 'LeagueSpartan',
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 20,
+                fontFamily: 'LeagueSpartan',
+                color: Colors.black87,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: value.isNotEmpty
-                ? Text(
-                    value,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 20,
-                      fontFamily: 'LeagueSpartan',
-                    ),
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                : const SizedBox.shrink(),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: 12),
-            trailing!,
-          ],
+          if (value.isNotEmpty)
+            Expanded(
+              flex: 4,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  fontFamily: 'LeagueSpartan',
+                  color: Color(0xFF3B8EDB),
+                ),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          if (trailing != null) ...[const SizedBox(width: 12), trailing!],
         ],
       ),
     );
